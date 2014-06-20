@@ -1,1 +1,15 @@
 colorscheme railscasts
+
+" syntax highlighting
+syn on
+" " but turn syntax highlighting off if we're working with a huge file
+au BufReadPost * if getfsize(bufname("%")) > 204800 | set syntax= | endif
+
+" set up syntastic to not run on save
+let g:syntastic_mode_map = { 'mode': 'passive',
+\ 'active_filetypes': [],
+\ 'passive_filetypes': [] }
+" map synstastic call to leader s
+map <leader>s :SyntasticCheck<CR>
+" tell syntastic to use our prod ruleset
+let g:syntastic_phpcs_conf = "--standard=/home/".expand($USER)."/development/Etsyweb/tests/standards/stable-ruleset.xml"
