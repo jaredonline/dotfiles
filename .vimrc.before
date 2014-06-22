@@ -1,3 +1,5 @@
+" Turn on the plugin filetype
+filetype plugin on
 " Swap directory
 set dir=~/.swps
 " File opening autocompletion
@@ -79,3 +81,6 @@ set statusline+=[%b][0x%B]
 let mapleader = ","
 " add _ as a border character
 set isk-=_
+
+" quickly open new tabs
+map <leader>T :tabnew<CR>
