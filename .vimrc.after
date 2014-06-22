@@ -79,3 +79,5 @@ endfunction
 let g:ctrlp_clear_cache_on_ext = 0
 let g:ctrlp_cache_dir = "~/.ctrlp"
 let g:ctrlp_switch_buffer= "Et"
+map <leader>p :CtrlP<CR>
+map <leader>T :tabnew<CR>
