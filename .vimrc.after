@@ -1,7 +1,3 @@
-colorscheme railscasts
-
-" syntax highlighting
-syn on
 " " but turn syntax highlighting off if we're working with a huge file
 au BufReadPost * if getfsize(bufname("%")) > 204800 | set syntax= | endif
 
@@ -13,3 +9,73 @@ let g:syntastic_mode_map = { 'mode': 'passive',
 map <leader>s :SyntasticCheck<CR>
 " tell syntastic to use our prod ruleset
 let g:syntastic_phpcs_conf = "--standard=/home/".expand($USER)."/development/Etsyweb/tests/standards/stable-ruleset.xml"
+
+" Use leader-n to open NERDTree
+map <leader>n :NERDTreeToggle<CR>
+" Open NERDTree automatically when VIM opens
+"autocmd vimenter * NERDTree
+" Disable the NERDTree fancy arrows
+let NERDTreeDirArrows=0
+
+
+""
+"" NERDTree Custimzations
+""
+augroup AuNERDTreeCmd
+autocmd AuNERDTreeCmd vimenter * call s:CdIfDirectory(expand("<amatch>"))
+" autocmd AuNERDTreeCmd FocusGained * call s:UpdateNERDTree()
+
+function s:CdIfDirectory(directory)
+    NERDTree
+    let directoryString = split(a:directory, "/NERD_tree")[0]
+
+    let explicitDirectory = isdirectory(directoryString)
+    let directory         = explicitDirectory || empty(directory)
+
+    echo a:directory
+    if explicitDirectory
+        exe "cd " . fnameescape(directoryString)
+    endif
+
+    " Allows reading from stdin
+    " ex: git diff | mvim -R -
+    if strlen(directoryString) == 0
+        return
+    endif
+
+    if directory
+        wincmd p
+        bd
+    endif
+
+    if explicitDirectory
+        wincmd p
+    endif
+endfunction
+
+" function s:UpdateNERDTree(...)
+    " let stay = 0
+" 
+    " if(exists("a:1"))
+        " let stay = a:1
+    " end
+" 
+    " if exists("t:NERDTreeBufName")
+        " let nr = bufwinnr(t:NERDTreeBufName)
+        " if nr != -1
+            " exe nr . "wincmd w"
+            " exe substitute(mapcheck("R"), "<CR>", "", "")
+            " if !stay
+                " wincmd p
+            " end
+        " endif
+    " endif
+" endfunction
+
+
+""
+"" CtrlP Customizations
+""
+let g:ctrlp_clear_cache_on_ext = 0
+let g:ctrlp_cache_dir = "~/.ctrlp"
+let g:ctrlp_switch_buffer= "Et"

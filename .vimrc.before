@@ -1,3 +1,81 @@
+" Swap directory
+set dir=~/.swps
+" File opening autocompletion
+set wildmode=longest,list
+" ignore files Im never gonna want to open
+set wildignore+=*/tmp/*,*.so,*.swp,*.zip
+" Dont wrap lines.
+set nowrap
+" Try to get new lines in the right spot. Messes with snipMate sometimes.
+set autoindent
+" Ignore case of search pattern if all lowercase
+set smartcase
+" Ignore case of search pattern
+set ignorecase
+" Show matches for your search experession while typing
+set incsearch
+" show matches of search expression
+set showmatch
+" highlight search results
+set hlsearch
+" global search by default
+set gdefault
+" tab = 4 spaces
+set tabstop=4
+set softtabstop=4
+set shiftwidth=4
+" set tabstop to 2 for ruby
+autocmd FileType ruby setlocal tabstop=2
+autocmd FileType ruby setlocal softtabstop=2
+autocmd FileType ruby setlocal shiftwidth=2
+" set tabstop to 2 for scala
+autocmd FileType scala setlocal tabstop=2
+autocmd FileType scala setlocal softtabstop=2
+autocmd FileType scala setlocal shiftwidth=2
+" expand tabs to spaces
+set expandtab
+" syntax highlighting
+set t_Co=256
+syn on
+colorscheme railscasts
+" show what line the cursor is on
 set cursorline
 let g:indent_guides_enable_on_vim_startup=1
+" highlight the 81st character
+set colorcolumn=81
+
+" allow switching buffers without saving first
+set hidden
+" show line numbers
+set number
+" use vim only, no vi defaults
+set nocompatible
+" show reg-mode commands as you type
+set showcmd
+" show line/col info
+set ruler
+" Load swap files if they exist
+set autoread
+" Show the tabline, always
 set showtabline=2
+" Open new splits to the right
+set splitright
+" Open new vsplits to the bottom
+set splitbelow
+" Pastehelper
+set pastetoggle=<F11>
+" Up the tab limit
+set tabpagemax=20
+" Keep status line on bottom all the time
+set laststatus=2
+" Start the status line
+set statusline=%f\ %m\ %r
+set statusline+=Line:%l/%L[%p%%]
+set statusline+=Col:%v
+set statusline+=Buf:#%n
+set statusline+=[%b][0x%B]
+
+" let , be my leader for complex commands
+let mapleader = ","
+" add _ as a border character
+set isk-=_
