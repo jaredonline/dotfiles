@@ -6,7 +6,6 @@ if [ -f /etc/bashrc ]; then
 fi
 
 # User specific aliases and functions
-
 alias ll='ls -alh'
 alias t='tmux'
 alias ta='tmux a'
@@ -23,6 +22,6 @@ PS1="\[$GREEN\]\t\[$RED\]-\[$BLUE\]\u\[$YELLOW\]\[$YELLOW\]\w\[\033[m\]\[$MAGENT
 
 
 # Git auto-complete
-if [ -f ~/dotfiles/.git-completion.bash ]; then
-    . ~/dotfiles/.git-completion.bash
+if [ -f ~/dotfiles/tools/.git-completion.bash ]; then
+    . ~/dotfiles/tools/.git-completion.bash
 fi

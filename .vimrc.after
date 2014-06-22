@@ -23,7 +23,6 @@ let NERDTreeDirArrows=0
 ""
 augroup AuNERDTreeCmd
 autocmd AuNERDTreeCmd vimenter * call s:CdIfDirectory(expand("<amatch>"))
-" autocmd AuNERDTreeCmd FocusGained * call s:UpdateNERDTree()
 
 function s:CdIfDirectory(directory)
     NERDTree
@@ -52,26 +51,6 @@ function s:CdIfDirectory(directory)
         wincmd p
     endif
 endfunction
-
-" function s:UpdateNERDTree(...)
-    " let stay = 0
-" 
-    " if(exists("a:1"))
-        " let stay = a:1
-    " end
-" 
-    " if exists("t:NERDTreeBufName")
-        " let nr = bufwinnr(t:NERDTreeBufName)
-        " if nr != -1
-            " exe nr . "wincmd w"
-            " exe substitute(mapcheck("R"), "<CR>", "", "")
-            " if !stay
-                " wincmd p
-            " end
-        " endif
-    " endif
-" endfunction
-
 
 ""
 "" CtrlP Customizations
