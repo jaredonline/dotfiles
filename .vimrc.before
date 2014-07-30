@@ -36,10 +36,6 @@ autocmd FileType scala setlocal softtabstop=2
 autocmd FileType scala setlocal shiftwidth=2
 " expand tabs to spaces
 set expandtab
-" syntax highlighting
-set t_Co=256
-syn on
-colorscheme railscasts
 " show what line the cursor is on
 set cursorline
 let g:indent_guides_enable_on_vim_startup=1
