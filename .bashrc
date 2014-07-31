@@ -29,3 +29,6 @@ fi
 if [ -f ~/dotfiles/tools/.git-completion.bash ]; then
     . ~/dotfiles/tools/.git-completion.bash
 fi
+
+### Added by the Heroku Toolbelt
+export PATH="/usr/local/heroku/bin:$PATH"
