@@ -5,11 +5,6 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
-# User specific aliases and functions
-alias ll='ls -alh'
-alias t='tmux'
-alias ta='tmux a'
-
 ##
 ## Sweet Git helpers
 ##
