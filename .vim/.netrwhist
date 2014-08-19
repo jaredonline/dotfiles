@@ -1,11 +1,5 @@
 let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =9
-let g:netrw_dirhist_1='/Users/jmcfarland/code/cailin/etsy'
-let g:netrw_dirhist_2='/Users/jmcfarland/code/cailin'
-let g:netrw_dirhist_3='scp://vm/development/Etsyweb/'
-let g:netrw_dirhist_4='scp://vm/development/Etsyweb/docs/'
-let g:netrw_dirhist_5='/Users/jmcfarland'
-let g:netrw_dirhist_6='/Users/jmcfarland/code/rust'
-let g:netrw_dirhist_7='/Users/jmcfarland/code/rust/dwemthys'
-let g:netrw_dirhist_8='.'
-let g:netrw_dirhist_9='/Users/jmcfarland/code/rust/dwemthys'
+let g:netrw_dirhist_cnt =3
+let g:netrw_dirhist_1='/Users/jmcfarland/code/rust/boxes'
+let g:netrw_dirhist_2='/Users/jmcfarland/Downloads'
+let g:netrw_dirhist_3='/Users/jmcfarland/dotfiles'
