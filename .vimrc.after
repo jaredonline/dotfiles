@@ -4,8 +4,8 @@ syn on
 au BufReadPost * if getfsize(bufname("%")) > 204800 | set syntax= | endif
 
 " theme
-set background=dark
-colorscheme railscasts
+set background=light
+colorscheme github
 
 " theme customization
 if (g:colors_name =~ "solarized")

@@ -40,3 +40,9 @@
 [submodule ".vim/bundle/vim-airline"]
 	path = .vim/bundle/vim-airline
 	url = https://github.com/bling/vim-airline
+[submodule ".vim/bundle/vim-github"]
+	path = .vim/bundle/vim-github
+	url = https://github.etsycorp.com/tschneiter/vim-github.git
+[submodule ".vim/bundle/vim-github-colorscheme"]
+	path = .vim/bundle/vim-github-colorscheme
+	url = git@github.com:endel/vim-github-colorscheme.git
