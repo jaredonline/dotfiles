@@ -46,3 +46,6 @@
 [submodule ".vim/bundle/vim-github-colorscheme"]
 	path = .vim/bundle/vim-github-colorscheme
 	url = git@github.com:endel/vim-github-colorscheme.git
+[submodule ".vim/bundle/vim-lucius"]
+	path = .vim/bundle/vim-lucius
+	url = https://github.com/jonathanfilip/vim-lucius
