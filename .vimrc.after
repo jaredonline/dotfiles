@@ -6,6 +6,7 @@ au BufReadPost * if getfsize(bufname("%")) > 204800 | set syntax= | endif
 " theme
 set background=light
 colorscheme lucius
+LuciusLightLowContrast
 
 " theme customization
 if (g:colors_name =~ "solarized")
