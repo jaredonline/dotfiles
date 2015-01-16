@@ -49,3 +49,6 @@
 [submodule ".vim/bundle/vim-lucius"]
 	path = .vim/bundle/vim-lucius
 	url = https://github.com/jonathanfilip/vim-lucius
+[submodule "vim-nerdtree-tabs"]
+	path = vim-nerdtree-tabs
+	url = https://github.com/jistr/vim-nerdtree-tabs.git
