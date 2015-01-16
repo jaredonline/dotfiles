@@ -1,6 +1,11 @@
 let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =4
+let g:netrw_dirhist_cnt =9
 let g:netrw_dirhist_1='/Users/jmcfarland/code/rust/dwemthys'
-let g:netrw_dirhist_2='/Users/jmcfarland/dotfiles'
-let g:netrw_dirhist_3='/Users/jmcfarland/code/rust/dwemthys'
-let g:netrw_dirhist_4='/Users/jmcfarland/dotfiles/.vim/bundle'
+let g:netrw_dirhist_2='/Users/jmcfarland/code/ember/maestro'
+let g:netrw_dirhist_3='/Users/jmcfarland/code/ember/etsy-inventory'
+let g:netrw_dirhist_4='/Users/jmcfarland/code/rust/skip-list'
+let g:netrw_dirhist_5='.'
+let g:netrw_dirhist_6='/Users/jmcfarland/code/rust/skip-list'
+let g:netrw_dirhist_7='/Users/jmcfarland/Library/Application Support/Steam/SteamApps/common/Kerbal Space Program'
+let g:netrw_dirhist_8='/Users/jmcfarland/code/ember/etsy-inventory'
+let g:netrw_dirhist_9='/Users/jmcfarland/dotfiles'

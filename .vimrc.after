@@ -27,6 +27,11 @@ let NERDTreeDirArrows=0
 ""
 let g:nerdtree_tabs_open_on_console_startup=1
 let g:nerdtree_tabs_no_startup_for_diff=1
+let g:nerdtree_tabs_smart_startup_focus=2
+
+"" clear the current buffer when opening a directory
+autocmd StdinReadPre * let s:std_in=1
+autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | bd | endif
 
 ""
 "" CtrlP Customizations
