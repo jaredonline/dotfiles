@@ -8,30 +8,6 @@ let g:solarized_termcolors=256
 set background=dark
 colorscheme solarized
 
-" theme customization
-"if (g:colors_name =~ "solarized")
-    "autocmd ColorScheme * hi Normal ctermbg=015
-    "autocmd ColorScheme * hi LineNr ctermfg=253 ctermbg=none cterm=none
-    "autocmd ColorScheme * hi CursorLine ctermbg=255 cterm=none
-    "autocmd ColorScheme * hi CursorColumn ctermbg=255 cterm=none
-    "autocmd ColorScheme * hi StatusLine ctermfg=254 ctermbg=237
-    "autocmd ColorScheme * hi StatusLineNC ctermfg=254 ctermbg=248
-    "autocmd ColorScheme * hi VertSplit ctermfg=254 ctermbg=254 cterm=none
-    "autocmd ColorScheme * hi Search ctermbg=230 cterm=none
-    "autocmd ColorScheme * hi Comment ctermfg=248 ctermbg=231 cterm=none
-    "if has("gui")
-        "autocmd ColorScheme * hi Normal guibg=#ffffff
-        "autocmd ColorScheme * hi LineNr guifg=#E0E0E0 guibg=none gui=none
-        "autocmd ColorScheme * hi CursorLine guibg=#F1F1F1 gui=none
-        "autocmd ColorScheme * hi CursorColumn guibg=#F1F1F1 gui=none
-        "autocmd ColorScheme * hi StatusLine guifg=#E9E9E9 guibg=#4A4A4A
-        "autocmd ColorScheme * hi StatusLineNC guifg=#E9E9E9 guibg=#B6B6B6
-        "autocmd ColorScheme * hi VertSplit guifg=#E9E9E9 guibg=#E9E9E9 gui=none
-        "autocmd ColorScheme * hi Search guibg=#FEFDDE gui=none
-        "autocmd ColorScheme * hi Comment guifg=#B6B6B6 guibg=231 gui=none
-    "endif
-"endif
-
 " set up syntastic to not run on save
 let g:syntastic_mode_map = { 'mode': 'passive',
 \ 'active_filetypes': [],
@@ -43,45 +19,15 @@ let g:syntastic_phpcs_conf = "--standard=/home/".expand($USER)."/development/Ets
 
 " Use leader-n to open NERDTree
 map <leader>n :NERDTreeToggle<CR>
-" Open NERDTree automatically when VIM opens
-"autocmd vimenter * NERDTree
 " Disable the NERDTree fancy arrows
 let NERDTreeDirArrows=0
-
 
 ""
 "" NERDTree Custimzations
 ""
-augroup AuNERDTreeCmd
-autocmd AuNERDTreeCmd vimenter * call s:CdIfDirectory(expand("<amatch>"))
-
-function s:CdIfDirectory(directory)
-    NERDTree
-    let directoryString = split(a:directory, "/NERD_tree")[0]
-
-    let explicitDirectory = isdirectory(directoryString)
-    let directory         = explicitDirectory || empty(directory)
-
-    echo a:directory
-    if explicitDirectory
-        exe "cd " . fnameescape(directoryString)
-    endif
-
-    " Allows reading from stdin
-    " ex: git diff | mvim -R -
-    if strlen(directoryString) == 0
-        return
-    endif
-
-    if directory
-        wincmd p
-        bd
-    endif
-
-    if explicitDirectory
-        wincmd p
-    endif
-endfunction
+let g:nerdtree_tabs_open_on_console_startup=1
+let g:nerdtree_tabs_open_on_gui_startup=1
+let g:nerdtree_tabs_no_startup_for_diff=1
 
 ""
 "" CtrlP Customizations
