@@ -5,6 +5,10 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
+# Set default editors to vim (not vi)
+export VISUAL=vim;
+export EDITOR=vim;
+
 ##
 ## Sweet Git helpers
 ##
@@ -24,6 +28,3 @@ fi
 if [ -f ~/dotfiles/tools/.git-completion.bash ]; then
     . ~/dotfiles/tools/.git-completion.bash
 fi
-
-### Added by the Heroku Toolbelt
-export PATH="/usr/local/heroku/bin:$PATH"
