@@ -7,7 +7,7 @@ execute pathogen#infect()
 execute pathogen#helptags()
 source ~/.vimrc.after
 
-" Custom to each platform
-if filereadable("~/.vimrc.custom")
+" Custom file per system
+if filereadable(glob("~/.vimrc.custom")) 
     source ~/.vimrc.custom
 endif
