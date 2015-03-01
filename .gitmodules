@@ -61,3 +61,6 @@
 [submodule ".vim/bundle/hound.vim"]
 	path = .vim/bundle/hound.vim
 	url = git@github.com:urthbound/hound.vim.git
+[submodule ".vim/bundle/webapi-vim"]
+	path = .vim/bundle/webapi-vim
+	url = git@github.com:mattn/webapi-vim.git
