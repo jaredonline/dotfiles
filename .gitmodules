@@ -55,3 +55,9 @@
 [submodule ".vim/bundle/vim-nerdtree-tabs"]
 	path = .vim/bundle/vim-nerdtree-tabs
 	url = https://github.com/jistr/vim-nerdtree-tabs.git
+[submodule ".vim/bundle/vim-syntax-extra"]
+	path = .vim/bundle/vim-syntax-extra
+	url = git@github.com:justinmk/vim-syntax-extra.git
+[submodule ".vim/bundle/hound.vim"]
+	path = .vim/bundle/hound.vim
+	url = git@github.com:urthbound/hound.vim.git
