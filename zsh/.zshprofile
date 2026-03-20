@@ -1,0 +1,3 @@
+alias ll="eza -al"
+
+[[ -f ~/.zshprofile.local ]] && source ~/.zshprofile.local
