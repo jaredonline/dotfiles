@@ -20,7 +20,7 @@ Two human touchpoints: **approve the design**, **review final findings**. Everyt
 
 ## New Projects
 
-In a greenfield project, use the /kickoff skill to bootstrap a project with necessary information.
+In a greenfield project, use the `/kickoff` skill to bootstrap a project with necessary information.
 
 ## Install
 
