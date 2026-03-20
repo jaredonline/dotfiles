@@ -58,6 +58,11 @@ for cmd in "$DOTFILES"/claude/commands/*.md; do
   link_file "claude/commands/$(basename "$cmd")" "$HOME/.claude/commands/$(basename "$cmd")"
 done
 
+# Tool setup (run once)
+if command -v gh &>/dev/null && ! git config --global credential.https://github.com.helper &>/dev/null; then
+  gh auth setup-git
+fi
+
 # Source local/private install if present
 [[ -f "$DOTFILES/local/install.sh" ]] && source "$DOTFILES/local/install.sh"
 
