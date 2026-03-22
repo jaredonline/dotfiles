@@ -9,6 +9,18 @@ The user has an approved design document (from /design). They may provide:
 
 If no design is available, stop and tell the user to run /design first.
 
+## Agent Strategy
+
+| Step | Parallel? | Why |
+|---|---|---|
+| 1. Parse task graph | No — main agent | Determines worker decomposition |
+| 2. Create shared interfaces | No — main agent | Must exist before workers start |
+| 3. Spawn workers | Yes — all workers | Independent implementation tasks |
+| 4. Monitor and unblock | No — main agent | Responds to worker issues |
+| 5. Integration check | No — main agent | Verifies all pieces connect |
+| 6. Self-validation | No — main agent | Checks spec compliance |
+| 7. Report | No — main agent | Summarizes results to user |
+
 ## Process
 
 ### 1. Parse the design into a task graph
@@ -80,7 +92,19 @@ After all workers complete:
 - Run any existing tests (`go test ./...`, `npm test`, `pytest`, etc.)
 - Fix integration issues — these are usually import paths, type mismatches, or missing glue code
 
-### 6. Done
+### 6. Self-validation
+
+Before reporting, verify:
+
+- [ ] Every interface from the design has a corresponding implementation
+- [ ] No worker added methods, fields, or parameters not in the spec
+- [ ] All tests pass (integration + worker-written unit tests)
+- [ ] No files were modified outside declared task scopes
+- [ ] Any deviations from the design are documented with rationale
+
+If any check fails, fix it before reporting.
+
+### 7. Report
 
 Report to the user:
 - Tasks completed

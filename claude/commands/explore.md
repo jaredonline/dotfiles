@@ -7,6 +7,16 @@ The user provides a system, feature, or area to explore. Examples:
 - "how the API gateway routes requests"
 - "the billing pipeline"
 
+## Agent Strategy
+
+| Step | Parallel? | Why |
+|---|---|---|
+| 1. Scope exploration | No — main agent | Needs user input to define focus |
+| 2. Topic explorers (Data Flow, Schema, Integration, Invariant) | Yes — 4 agents | Independent research areas |
+| 3. Synthesize | No — main agent | Combines all explorer output |
+| 4. Output | No — main agent | Formats final document |
+| 5. Self-validation | No — main agent | Checks output completeness |
+
 ## Process
 
 ### 1. Scope the exploration
@@ -70,6 +80,19 @@ Constraints the system maintains, with the code that enforces them.
 ## Failure Modes
 What breaks and how the system handles it.
 ```
+
+### 5. Self-validation
+
+Before presenting the final document, verify:
+
+- [ ] Every section in the output template has content (or an explicit "N/A — [reason]")
+- [ ] Every claim references a specific file and function/line
+- [ ] Architecture diagram exists and matches the described components
+- [ ] Data flows are end-to-end (entry point → terminal state), not fragments
+- [ ] Integration points list direction (inbound/outbound) and protocol
+- [ ] No section is a restatement of another — each adds distinct information
+
+If any check fails, go back and fill the gap before presenting.
 
 ## Rules
 

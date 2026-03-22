@@ -4,6 +4,17 @@ You are performing a multi-perspective code review. Your goal is to find real is
 
 Review the current branch's changes against the base branch (usually `main` or `master`). If a design document exists, also verify implementation coherence.
 
+## Agent Strategy
+
+| Step | Parallel? | Why |
+|---|---|---|
+| 1. Gather context | No — main agent | Determines which reviewers to spawn |
+| 2. Reviewer team (Architect, Code Quality, Devil's Advocate, Test Quality, language-specific, Design Coherence) | Yes — all agents | Independent review perspectives |
+| 3. Correctness filter | No — main agent | Verifies findings against actual code |
+| 4. Consensus detection | No — main agent | Depends on filtered findings |
+| 5. Output | No — main agent | Formats phased findings report |
+| 6. Fix cycle | No — main agent | Implements approved fixes, re-reviews |
+
 ## Process
 
 ### 1. Gather context

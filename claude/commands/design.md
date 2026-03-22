@@ -12,6 +12,18 @@ The user provides a brief. The brief's detail level varies:
 
 The more the user front-loads, the less exploration you do and the faster you converge.
 
+## Agent Strategy
+
+| Step | Parallel? | Why |
+|---|---|---|
+| 1. Understand brief | No — main agent | Needs user input |
+| 2. Exploration team (Codebase, Prior Art, Devil's Advocate) | Yes — 3 agents | Independent research |
+| 3. Synthesize | No — main agent | Combines findings into design |
+| 4. Spec interfaces | No — main agent | Depends on synthesis |
+| 5. Simplification review | No — 1 agent (clean-room) | Isolated from exploration context |
+| 6. Output | No — main agent | Formats final document |
+| 7. Self-validation | No — main agent | Checks output completeness |
+
 ## Process
 
 ### 1. Understand the brief
@@ -122,6 +134,19 @@ Constraints the implementation must maintain.
 ## Open Questions
 Anything that needs human input before implementation.
 ```
+
+### 7. Self-validation
+
+Before presenting the final document, verify:
+
+- [ ] Every section in the output template has content (or an explicit "N/A — [reason]")
+- [ ] All interfaces have full signatures with types, parameters, and error cases
+- [ ] Key Decisions table has at least one rejected alternative per decision
+- [ ] Architecture diagram exists and matches the described components
+- [ ] Invariants section lists concrete constraints, not vague goals
+- [ ] Open Questions are genuine blockers, not deferred decisions you could have made
+
+If any check fails, fix it before presenting.
 
 ## Rules
 
