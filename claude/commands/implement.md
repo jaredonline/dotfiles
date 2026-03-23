@@ -13,53 +13,67 @@ If no design is available, stop and tell the user to run /design first.
 
 | Step | Parallel? | Why |
 |---|---|---|
-| 1. Parse task graph | No — main agent | Determines worker decomposition |
-| 2. Create shared interfaces | No — main agent | Must exist before workers start |
-| 3. Spawn workers | Yes — all workers | Independent implementation tasks |
-| 4. Monitor and unblock | No — main agent | Responds to worker issues |
-| 5. Integration check | No — main agent | Verifies all pieces connect |
-| 6. Self-validation | No — main agent | Checks spec compliance |
-| 7. Report | No — main agent | Summarizes results to user |
+| 1. Create Beads task | No — main agent | Track work before starting |
+| 2. Detect mode | No — main agent | Determines Mode A or Mode B |
+| 3. Read/create task graph | No — main agent | Mode A reads graph; Mode B creates it |
+| 4. Create shared interfaces | No — main agent | Must exist before workers start |
+| 5. Spawn workers | Yes — all workers in worktrees | Independent implementation tasks |
+| 6. Integrate | No — main agent | Merge worktree branches, run tests |
+| 7. Close tasks and report | No — main agent | Summarizes results with ## Tracking |
 
 ## Process
 
-### 1. Parse the design into a task graph
+### 1. Create Beads task
 
-Read the design document and extract:
+Run `bd create --title="Implement: [design name]" --type=task` and store the returned task ID.
+Claim it: `bd update <id> --claim`.
+
+### 2. Detect mode
+
+Check if a task graph already exists (from `/plan`):
+
+```
+bd list --parent=<epic-matching-design> --status=open
+```
+
+- **If results exist** → Mode A (task graph exists, proceed to Step 3A)
+- **If empty** → Mode B (no task graph, proceed to Step 3B)
+
+### 3A. Mode A — Read existing task graph
+
+The task graph was created by `/plan`. Read it:
+
+```
+bd list --parent=<epic-id> --status=open --pretty
+```
+
+Identify which tasks are ready (no unresolved deps) and which are blocked. Skip to Step 5.
+
+### 3B. Mode B — Create task graph inline
+
+Parse the design document and extract:
 - **Components** to build (from Architecture section)
 - **Interfaces** to implement (from Interfaces section)
 - **Data schemas** to create/modify (from Data Schemas section)
 - **Dependencies** between tasks (which tasks block others)
 
-Produce a task list:
-```
-Task 1: [description] — depends on: none
-Task 2: [description] — depends on: none
-Task 3: [description] — depends on: Task 1, Task 2
-...
-```
+Create Beads tasks for each component: `bd create --title="..." --description="..." --type=task` with interface spec, file scope, and acceptance criteria in the description. Wire deps with `bd dep add`.
 
-Tasks with no dependencies can run in parallel. Maximize parallelism.
-
-### 2. Create the shared interface files first
+### 4. Create shared interfaces
 
 Before spawning workers, create any shared types, interfaces, or proto definitions that multiple workers need. This prevents workers from inventing incompatible interfaces.
 
 Commit these shared files so workers can read them.
 
-### 3. Spawn all workers (parallel)
+### 5. Spawn workers (parallel, in worktrees)
 
-Spawn ALL workers in ONE message. Each worker gets:
-- Its specific task description
-- The relevant interface specs from the design (copy them in, don't reference)
-- File paths it should modify or create
-- Its dependency list (if it depends on another task, tell it to wait and check)
+For each ready task (no unresolved deps), spawn a worker:
 
-**Worker prompt template:**
+**Worker** (Agent, model=opus, isolation=worktree):
 > You are implementing one task from a design.
 >
 > ## Your Task
-> [task description]
+> [paste task description from Beads, including interface spec and file scope]
 >
 > ## Interface Spec
 > [paste the relevant interfaces from the design]
@@ -68,55 +82,66 @@ Spawn ALL workers in ONE message. Each worker gets:
 > - Modify: [file paths]
 > - Create: [file paths]
 >
-> ## Dependencies
-> [none, or: "Task N must complete first — check that [file] exists before starting"]
->
 > ## Rules
 > - Follow the interface spec exactly — do not add methods, fields, or parameters not in the spec
 > - Match existing code patterns in the repo (error handling, naming, structure)
 > - Write tests for the code you write
 > - Do not modify files outside your task scope
 > - If you're blocked or find the design is ambiguous, report the issue — do not guess
+>
+> When done, commit your changes with a descriptive message.
 
-### 4. Monitor and unblock
+Spawn ALL ready workers in ONE message.
 
-As workers report back:
-- Check that interfaces match the spec
-- If a worker is blocked on a dependency, verify the dependency is complete
-- If a worker found a design ambiguity, make the call (for minor issues) or flag to the user (for major ones)
+For tasks with unresolved deps: wait for blocking workers to complete, then spawn the next wave.
 
-### 5. Integration check
+### 6. Integrate
 
 After all workers complete:
-- Verify all interfaces connect properly
+
+- Acquire merge slot: `bd merge-slot acquire`
+- For each completed worker worktree branch, merge into current branch
+- Release merge slot: `bd merge-slot release`
 - Run any existing tests (`go test ./...`, `npm test`, `pytest`, etc.)
 - Fix integration issues — these are usually import paths, type mismatches, or missing glue code
 
-### 6. Self-validation
-
-Before reporting, verify:
-
-- [ ] Every interface from the design has a corresponding implementation
-- [ ] No worker added methods, fields, or parameters not in the spec
-- [ ] All tests pass (integration + worker-written unit tests)
-- [ ] No files were modified outside declared task scopes
-- [ ] Any deviations from the design are documented with rationale
-
 If any check fails, fix it before reporting.
 
-### 7. Report
+### 7. Close tasks and report
+
+For each completed task: `bd close <task-id>`
+Close the orchestration task: `bd close <orchestration-task-id>`
 
 Report to the user:
-- Tasks completed
-- Files created/modified
-- Test results
-- Any issues or deviations from the design
+
+```markdown
+# Implementation Report
+
+## Tasks Completed
+[list task IDs and titles]
+
+## Files Created/Modified
+[list files]
+
+## Test Results
+[pass/fail summary]
+
+## Deviations
+[any differences from the design, with rationale]
+
+## Tracking
+- Beads: <orchestration-task-id> — closed
+- [list all implementation task IDs and status]
+```
 
 ## Rules
 
 - **Do not start without a design** — if there's no design document, stop
+- **All workers use worktree isolation** — every worker Agent must include `isolation: "worktree"`
 - **Shared interfaces first** — create them before spawning workers to prevent drift
 - **Workers follow the spec exactly** — no freelancing, no extra methods, no bonus abstractions
 - **Match existing patterns** — look at neighboring code for conventions before writing new code
 - **Tests are required** — every worker writes tests for its code
+- **Merge-slot at integration** — acquire before merging worktree branches back
 - **Report deviations** — if implementation must differ from design, explain why
+- **## Tracking is mandatory** — output must include Beads task IDs

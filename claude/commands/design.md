@@ -16,24 +16,31 @@ The more the user front-loads, the less exploration you do and the faster you co
 
 | Step | Parallel? | Why |
 |---|---|---|
-| 1. Understand brief | No — main agent | Needs user input |
-| 2. Exploration team (Codebase, Prior Art, Devil's Advocate) | Yes — 3 agents | Independent research |
-| 3. Synthesize | No — main agent | Combines findings into design |
-| 4. Spec interfaces | No — main agent | Depends on synthesis |
-| 5. Simplification review | No — 1 agent (clean-room) | Isolated from exploration context |
-| 6. Output | No — main agent | Formats final document |
-| 7. Self-validation | No — main agent | Checks output completeness |
+| 1. Create Beads task | No — main agent | Track work before starting |
+| 2. Understand brief | No — main agent | Needs user input |
+| 3. Exploration team | Yes — 3 agents | Independent research |
+| 4. Synthesize | No — main agent | Combines findings into design |
+| 5. Spec interfaces | No — main agent | Depends on synthesis |
+| 6. Simplification review | No — 1 agent (clean-room) | Isolated from exploration context |
+| 7. Output | No — main agent | Formats final document |
+| 8. Self-validation | No — main agent | Checks output completeness |
 
 ## Process
 
-### 1. Understand the brief
+### 1. Create Beads task
+
+Run `bd create --title="Design: [topic]" --description="[brief description of what is being designed]" --type=task` and store the returned task ID.
+Claim it: `bd update <id> --claim`.
+You will reference the task ID in the ## Tracking section of your final output.
+
+### 2. Understand the brief
 
 Parse the user's request for:
 - **Goal**: What problem are we solving?
 - **Constraints**: What must not change? What's out of scope?
 - **Sketch**: Did the user provide an approach? API shapes? Key decisions?
 
-### 2. Spawn exploration team (parallel)
+### 3. Spawn exploration team (parallel)
 
 Spawn ALL agents in ONE message:
 
@@ -46,11 +53,11 @@ Spawn ALL agents in ONE message:
 **Devil's Advocate** (Agent, model=opus):
 > Challenge the proposed approach. Consider: What could go wrong? What are the failure modes? Are there simpler alternatives? What's the maintenance burden? Where will this design break in 6 months? Return: ranked list of concerns with severity and suggested mitigations.
 
-### 3. Synthesize into design document
+### 4. Synthesize into design document
 
 Combine explorer findings with the user's brief. Make decisions — don't present options. For each decision, briefly note why alternatives were rejected.
 
-### 4. Spec all interfaces explicitly
+### 5. Spec all interfaces explicitly
 
 This is the most important step. For every boundary in the design:
 
@@ -78,7 +85,7 @@ table: name
 
 Keep interfaces minimal. If a method isn't needed by the design, don't add it.
 
-### 5. Clean-room simplification review
+### 6. Clean-room simplification review
 
 After the design is written, spawn a simplification reviewer with ONLY the design document — no access to the exploration context:
 
@@ -94,7 +101,9 @@ After the design is written, spawn a simplification reviewer with ONLY the desig
 
 For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY. Apply accepted simplifications to the design.
 
-### 6. Output
+### 7. Output
+
+Before writing the Tracking section, run `bd close <task-id>`.
 
 Produce a markdown document with these sections:
 
@@ -133,9 +142,15 @@ Constraints the implementation must maintain.
 
 ## Open Questions
 Anything that needs human input before implementation.
+
+## Tracking
+- Beads: <task-id> — closed
+
+## Next Step
+Run /plan to create the task graph for implementation.
 ```
 
-### 7. Self-validation
+### 8. Self-validation
 
 Before presenting the final document, verify:
 
@@ -145,6 +160,7 @@ Before presenting the final document, verify:
 - [ ] Architecture diagram exists and matches the described components
 - [ ] Invariants section lists concrete constraints, not vague goals
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
+- [ ] ## Tracking section includes Beads task ID
 
 If any check fails, fix it before presenting.
 

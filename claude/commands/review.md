@@ -8,22 +8,33 @@ Review the current branch's changes against the base branch (usually `main` or `
 
 | Step | Parallel? | Why |
 |---|---|---|
-| 1. Gather context | No — main agent | Determines which reviewers to spawn |
-| 2. Reviewer team (Architect, Code Quality, Devil's Advocate, Test Quality, language-specific, Design Coherence) | Yes — all agents | Independent review perspectives |
-| 3. Correctness filter | No — main agent | Verifies findings against actual code |
-| 4. Consensus detection | No — main agent | Depends on filtered findings |
-| 5. Output | No — main agent | Formats phased findings report |
-| 6. Fix cycle | No — main agent | Implements approved fixes, re-reviews |
+| 1. Create Beads task | No — main agent | Track work before starting |
+| 2. Gather context | No — main agent | Determines which reviewers to spawn |
+| 3. Reviewer team (Architect, Code Quality, Devil's Advocate, Test Quality, language-specific, Design Coherence) | Yes — all agents | Independent review perspectives |
+| 4. Correctness filter | No — main agent | Verifies findings against actual code |
+| 5. Consensus detection | No — main agent | Depends on filtered findings |
+| 6. Output | No — main agent | Formats phased findings report |
+| 7. Fix cycle | No — main agent | Implements approved fixes, re-reviews |
 
 ## Process
 
-### 1. Gather context
+### 1. Create Beads task
 
-- Run `git diff main...HEAD` (or appropriate base) to get the full diff
+Run `bd create --title="Review: [branch/feature]" --description="[what is being reviewed]" --type=task` and store the returned task ID.
+Claim it: `bd update <id> --claim`.
+You will reference the task ID in the ## Tracking section of your final output.
+
+### 2. Gather context
+
+- Detect the base branch dynamically:
+```bash
+base=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@') || base=main
+git diff $base...HEAD
+```
 - Identify languages in the diff to determine which language-specific reviewers to spawn
 - Check if a design document exists (look in conversation context or ask)
 
-### 2. Spawn reviewer team (parallel)
+### 3. Spawn reviewer team (parallel)
 
 Spawn ALL reviewers in ONE message. Give each reviewer the diff and a focused persona.
 
@@ -93,7 +104,7 @@ Only spawn if a design document is available:
 >
 > Return: Coherence Score X/10, Aligned (what matches), Deviations (what diverges), Missing (not yet implemented).
 
-### 3. Correctness filter
+### 4. Correctness filter
 
 For EVERY finding from all reviewers:
 
@@ -107,14 +118,16 @@ Classify each: **Confirmed** | **False positive** | **Partially correct**
 - Rewrite partially correct findings to be accurate
 - Keep confirmed findings as-is
 
-### 4. Consensus detection
+### 5. Consensus detection
 
 After filtering:
 - Tag each finding with its source reviewer
 - When 2+ reviewers flag the same issue → mark as **Priority**
 - Surface any explicit disagreements between reviewers
 
-### 5. Output
+### 6. Output
+
+Before writing the Tracking section, run `bd close <review-task-id>`.
 
 Present findings organized by phase:
 
@@ -145,14 +158,20 @@ Score: X/10
 
 ## False Positives Removed
 [list with justification, for transparency]
+
+## Tracking
+- Beads: <review-task-id> — closed
+- [list any bug fix task IDs and status]
 ```
 
-### 6. Fix cycle
+### 7. Fix cycle
 
 After presenting findings to the user:
+- If user approves fixes: Create Beads bug tasks. Claim them as you work on them. Record progress in the tasks as you go.
 - If user approves fixes: implement all Critical and High fixes
 - Run tests after fixes
 - Re-review only the changed code (don't re-review the full diff)
+- Close each bug task as its fix is verified. Close the review task after all fixes are complete: `bd close <review-task-id>`.
 
 ## Rules
 
