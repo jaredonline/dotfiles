@@ -44,6 +44,30 @@ merge_json() {
   fi
 }
 
+merge_md() {
+  local base="$DOTFILES/$1"
+  local override="$DOTFILES/$2"
+  local dst="$3"
+
+  mkdir -p "$(dirname "$dst")"
+
+  # Back up existing file (symlink or regular)
+  if [[ -L "$dst" ]]; then
+    rm "$dst"
+  elif [[ -e "$dst" ]]; then
+    echo "Backing up $dst → ${dst}.backup"
+    mv "$dst" "${dst}.backup"
+  fi
+
+  if [[ -f "$override" ]]; then
+    { cat "$base"; echo; cat "$override"; } > "$dst"
+    echo "Merged $base + $override → $dst"
+  else
+    cp "$base" "$dst"
+    echo "Copied $base → $dst (no local override)"
+  fi
+}
+
 # Core symlinks
 link_file "zsh/.zshrc"              "$HOME/.zshrc"
 link_file "zsh/.zshprofile"         "$HOME/.zshprofile"
@@ -53,6 +77,7 @@ link_file "tools/.gemrc"            "$HOME/.gemrc"
 link_file "tools/.terraformrc"      "$HOME/.terraformrc"
 link_file "gh/config.yml"           "$HOME/.config/gh/config.yml"
 merge_json "claude/settings.json" "local/claude/settings.json" "$HOME/.claude/settings.json"
+merge_md "CLAUDE.md" "local/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 # Claude Code skills
 for cmd in "$DOTFILES"/claude/commands/*.md; do
   link_file "claude/commands/$(basename "$cmd")" "$HOME/.claude/commands/$(basename "$cmd")"
