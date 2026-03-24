@@ -16,3 +16,7 @@
 	helper = !/opt/homebrew/bin/gh auth git-credential
 [beads]
 	role = maintainer
+[feature]
+	manyFiles = true
+[core]
+	fsmonitor = true
