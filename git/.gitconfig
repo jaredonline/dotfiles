@@ -17,4 +17,4 @@
 [beads]
 	role = maintainer
 [core]
-	fsmonitor = true
+	fsmonitor = false

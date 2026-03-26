@@ -17,8 +17,8 @@ If no design is available, stop and tell the user to run /design first.
 | 2. Detect mode | No — main agent | Determines Mode A or Mode B |
 | 3. Read/create task graph | No — main agent | Mode A reads graph; Mode B creates it |
 | 4. Create shared interfaces | No — main agent | Must exist before workers start |
-| 5. Spawn workers | Yes — all workers in worktrees | Independent implementation tasks |
-| 6. Integrate | No — main agent | Merge worktree branches, run tests |
+| 5. Spawn workers | Yes — all workers | Independent implementation tasks |
+| 6. Integrate | No — main agent | Verify changes, run tests |
 | 7. Close tasks and report | No — main agent | Summarizes results with ## Tracking |
 
 ## Process
@@ -63,13 +63,13 @@ Create Beads tasks for each component: `bd create --title="..." --description=".
 
 Before spawning workers, create any shared types, interfaces, or proto definitions that multiple workers need. This prevents workers from inventing incompatible interfaces.
 
-Commit these shared files so workers can read them.
+Write these shared files before spawning workers.
 
-### 5. Spawn workers (parallel, in worktrees)
+### 5. Spawn workers (parallel)
 
 For each ready task (no unresolved deps), spawn a worker:
 
-**Worker** (Agent, model=opus, isolation=worktree):
+**Worker** (Agent, model=opus):
 > You are implementing one task from a design.
 >
 > ## Your Task
@@ -87,9 +87,8 @@ For each ready task (no unresolved deps), spawn a worker:
 > - Match existing code patterns in the repo (error handling, naming, structure)
 > - Write tests for the code you write
 > - Do not modify files outside your task scope
+> - Do not run any git commands (no commits, no branching, no stashing)
 > - If you're blocked or find the design is ambiguous, report the issue — do not guess
->
-> When done, commit your changes with a descriptive message.
 
 Spawn ALL ready workers in ONE message.
 
@@ -99,11 +98,10 @@ For tasks with unresolved deps: wait for blocking workers to complete, then spaw
 
 After all workers complete:
 
-- Acquire merge slot: `bd merge-slot acquire`
-- For each completed worker worktree branch, merge into current branch
-- Release merge slot: `bd merge-slot release`
+- Review the changes made by all workers for consistency
 - Run any existing tests (`go test ./...`, `npm test`, `pytest`, etc.)
 - Fix integration issues — these are usually import paths, type mismatches, or missing glue code
+- Do not run any git commands (no commits, no branching)
 
 If any check fails, fix it before reporting.
 
@@ -137,11 +135,11 @@ Report to the user:
 ## Rules
 
 - **Do not start without a design** — if there's no design document, stop
-- **All workers use worktree isolation** — every worker Agent must include `isolation: "worktree"`
+- **No git operations** — do not commit, branch, stash, merge, or run any git commands. The user manages git themselves
+- **No worktrees** — do not use `isolation: "worktree"` on worker agents
 - **Shared interfaces first** — create them before spawning workers to prevent drift
 - **Workers follow the spec exactly** — no freelancing, no extra methods, no bonus abstractions
 - **Match existing patterns** — look at neighboring code for conventions before writing new code
 - **Tests are required** — every worker writes tests for its code
-- **Merge-slot at integration** — acquire before merging worktree branches back
 - **Report deviations** — if implementation must differ from design, explain why
 - **## Tracking is mandatory** — output must include Beads task IDs
