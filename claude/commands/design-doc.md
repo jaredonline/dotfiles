@@ -148,7 +148,7 @@ Wait for user feedback. If the user requests changes, revise and re-present unti
 
 ### 9. Finalize and output
 
-Run `mkdir -p "$COCKPIT_DIR/state/design-docs"` then write the final document to `$COCKPIT_DIR/state/design-docs/<slug>.md` where `<slug>` is a kebab-case name (max 50 chars).
+Run `mkdir -p "$COCKPIT_DIR/state/docs"` then write the final document to `$COCKPIT_DIR/state/docs/<slug>.md` where `<slug>` is a kebab-case name (max 50 chars).
 
 Close the epic: `bd close <epic-id>`.
 
