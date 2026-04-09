@@ -17,7 +17,7 @@ Run `bd list --status=in_progress` to see currently claimed tasks.
 Find and read the most recent daily summary:
 
 ```bash
-LATEST=$(ls -1 "$COCKPIT_DIR/state/news/"*.md 2>/dev/null | tail -1)
+LATEST=$(ls -1 "$COCKPIT_DIR/state/news"/????/??/????-??-??.md 2>/dev/null | tail -1)
 ```
 
 If a file exists, read it with the Read tool. This contains PRs, action items, stack status, and review activity.
