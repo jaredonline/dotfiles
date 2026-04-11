@@ -88,6 +88,37 @@ if command -v gh &>/dev/null && ! git config --global credential.https://github.
   gh auth setup-git
 fi
 
+setup_zellij() {
+  local zellij_config="$HOME/.config/zellij"
+  mkdir -p "$zellij_config/layouts"
+  mkdir -p "$zellij_config/plugins"
+
+  # Symlink config and layout
+  link_file "zellij/config.kdl" "$zellij_config/config.kdl"
+  link_file "zellij/layouts/cockpit.kdl" "$zellij_config/layouts/cockpit.kdl"
+
+  # Download zjstatus plugin if missing
+  if [[ ! -f "$zellij_config/plugins/zjstatus.wasm" ]]; then
+    echo "Downloading zjstatus plugin..."
+    curl -sL "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm" \
+      -o "$zellij_config/plugins/zjstatus.wasm" 2>&1 | tail -3
+  fi
+}
+
+build_dashboard() {
+  if command -v cargo >/dev/null 2>&1; then
+    echo "Building cockpit-dash..."
+    mkdir -p "$HOME/.local/bin"
+    (cd "$DOTFILES/cockpit-dash" && cargo build --release) 2>&1 | tail -5
+    cp "$DOTFILES/cockpit-dash/target/release/cockpit-dash" "$HOME/.local/bin/cockpit-dash"
+  else
+    echo "Rust/cargo not installed — skipping cockpit-dash build"
+  fi
+}
+
+build_dashboard
+setup_zellij
+
 # Source local/private install if present
 [[ -f "$DOTFILES/local/install.sh" ]] && source "$DOTFILES/local/install.sh"
 

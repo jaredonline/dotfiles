@@ -1,0 +1,19 @@
+// Session persistence — survives reboot
+session_serialization true
+pane_viewport_serialization true
+scrollback_lines_to_serialize 1000
+
+// Mouse support
+mouse_mode true
+
+// Tab switching by position (fixed 3-tab layout: 1=dash, 2=shell, 3=claude)
+keybinds {
+    normal {
+        bind "Alt d" { GoToTab 1; }
+        bind "Alt s" { GoToTab 2; }
+        bind "Alt c" { GoToTab 3; }
+    }
+}
+
+// Theme: Catppuccin Mocha (matching dashboard TUI)
+theme "catppuccin-mocha"
