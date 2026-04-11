@@ -6,13 +6,67 @@ You are recovering session context after a /clear, compaction, or new session. Y
 
 Run `bd prime` to restore workflow rules, command reference, and persistent memories.
 
-If `bd` is not available (command not found), skip to Step 3 and note that beads is unavailable.
+If `bd` is not available (command not found), skip to Step 5 and note that beads is unavailable.
 
 ### 2. Show active work
 
 Run `bd list --status=in_progress` to see currently claimed tasks.
 
-### 3. Load recent daily summary
+### 3. Regenerate PRIME.md
+
+If `.beads/PRIME.md` exists in the current directory, regenerate it:
+
+```bash
+bd prime --export > .beads/PRIME.md
+```
+
+PRIME.md is a cache, not authored content — regenerating is cheap and keeps it fresh.
+
+### 4. Resolve ancestor memory
+
+Read `$COCKPIT_DIR/project-tree.yml` (skip if file missing or COCKPIT_DIR unset).
+
+Use inline Python to find ancestor projects for the current working directory:
+
+```bash
+python3 -c "
+import yaml, os, sys
+cwd = os.getcwd()
+home = os.path.expanduser('~')
+tree = yaml.safe_load(open(os.environ.get('COCKPIT_DIR', home + '/ai-cockpit') + '/project-tree.yml'))
+
+def slug(path):
+    expanded = os.path.expanduser(path)
+    return '-' + expanded.lstrip('/').replace('/', '-')
+
+def find_ancestors(projects, cwd, chain=[]):
+    for p in (projects or []):
+        path = os.path.expanduser(p.get('path', ''))
+        if cwd.startswith(path) and cwd != path:
+            mem = home + '/.claude/projects' + slug(path) + '/memory/MEMORY.md'
+            if os.path.exists(mem):
+                chain.append((p['name'], mem))
+            find_ancestors(p.get('children', []), cwd, chain)
+    return chain
+
+for name, mem in find_ancestors(tree.get('projects', []), cwd):
+    print(f'{name}\t{mem}')
+" 2>/dev/null
+```
+
+For each ancestor found, read the MEMORY.md file and output:
+
+```
+## Inherited context from: <project name>
+<contents of MEMORY.md>
+```
+
+Skip gracefully if:
+- COCKPIT_DIR is unset and ~/ai-cockpit/project-tree.yml doesn't exist
+- cwd is not found in the project tree
+- Python or PyYAML is not available
+
+### 5. Load recent daily summary
 
 Find and read the most recent daily summary:
 
@@ -24,7 +78,7 @@ If a file exists, read it with the Read tool. This contains PRs, action items, s
 
 If no file exists or `$COCKPIT_DIR` is unset, skip this step.
 
-### 4. Output status
+### 6. Output status
 
 Print a brief summary:
 
@@ -36,6 +90,7 @@ Adjust the message based on what was available:
 - If no tasks in progress: "Session primed. No active tasks."
 - If no daily summary found: omit the daily summary mention
 - If beads unavailable: "Session primed (beads unavailable). Read CLAUDE.md for workflow context."
+- If ancestor context loaded: append "Inherited context from N ancestor(s)."
 
 ## Rules
 
