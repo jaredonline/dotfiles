@@ -105,6 +105,10 @@ For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY.
 
 Before writing the Tracking section, run `bd close <task-id>`.
 
+Write the design document to the cockpit state directory:
+- If `$COCKPIT_DIR` is set: `mkdir -p "$COCKPIT_DIR/state/designs"` and write the document to `$COCKPIT_DIR/state/designs/design-<slug>.md` where `<slug>` is a kebab-case version of the feature/system name (max 50 chars).
+- If `$COCKPIT_DIR` is not set: warn "COCKPIT_DIR not set — design written to conversation only"
+
 Produce a markdown document with these sections:
 
 ```markdown
