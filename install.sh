@@ -88,6 +88,46 @@ if command -v gh &>/dev/null && ! git config --global credential.https://github.
   gh auth setup-git
 fi
 
+# Cockpit setup
+cockpit_init() {
+  local cockpit_dir="${COCKPIT_DIR:-$HOME/ai-cockpit}"
+
+  mkdir -p "$cockpit_dir/state/investigations"
+  mkdir -p "$cockpit_dir/state/designs"
+  mkdir -p "$cockpit_dir/state/explorations"
+  mkdir -p "$cockpit_dir/local"
+
+  if [[ ! -d "$cockpit_dir/.git" ]]; then
+    echo "Initializing cockpit at $cockpit_dir"
+    git -C "$cockpit_dir" init
+    cat > "$cockpit_dir/.gitignore" << 'GITIGNORE'
+.beads/
+local/
+.claude/
+GITIGNORE
+    echo "Cockpit initialized. Run 'bd init' in $cockpit_dir to set up beads."
+  fi
+
+  if [[ ! -f "$cockpit_dir/project-tree.yml" ]]; then
+    cat > "$cockpit_dir/project-tree.yml" << 'YAML'
+# Project hierarchy for cockpit-dash and /prime memory resolution
+# Edit this file to match your project structure
+projects: []
+YAML
+  fi
+}
+
+build_dashboard() {
+  if command -v cargo >/dev/null 2>&1; then
+    echo "Building cockpit-dash..."
+    mkdir -p "$HOME/.local/bin"
+    (cd "$DOTFILES/cockpit-dash" && cargo build --release) 2>&1 | tail -5
+    cp "$DOTFILES/cockpit-dash/target/release/cockpit-dash" "$HOME/.local/bin/cockpit-dash"
+  else
+    echo "Rust/cargo not installed — skipping cockpit-dash build"
+  fi
+}
+
 setup_zellij() {
   local zellij_config="$HOME/.config/zellij"
   mkdir -p "$zellij_config/layouts"
@@ -105,17 +145,7 @@ setup_zellij() {
   fi
 }
 
-build_dashboard() {
-  if command -v cargo >/dev/null 2>&1; then
-    echo "Building cockpit-dash..."
-    mkdir -p "$HOME/.local/bin"
-    (cd "$DOTFILES/cockpit-dash" && cargo build --release) 2>&1 | tail -5
-    cp "$DOTFILES/cockpit-dash/target/release/cockpit-dash" "$HOME/.local/bin/cockpit-dash"
-  else
-    echo "Rust/cargo not installed — skipping cockpit-dash build"
-  fi
-}
-
+cockpit_init
 build_dashboard
 setup_zellij
 

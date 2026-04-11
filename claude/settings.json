@@ -16,14 +16,28 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "hooks": {
-    "SessionStart": {
-      "command": "command -v bd >/dev/null && bd prime --stealth 2>/dev/null || true",
-      "matcher": ""
-    },
-    "PreCompact": {
-      "command": "command -v bd >/dev/null && bd prime --stealth 2>/dev/null || true",
-      "matcher": ""
-    }
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v bd >/dev/null && bd prime --stealth 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v bd >/dev/null && bd prime --stealth 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
   },
   "statusLine": {
     "content": "command -v bd >/dev/null 2>&1 && bd list --status=in_progress --flat --json 2>/dev/null | python3 -c \"import sys,json; tasks=json.load(sys.stdin); print(' | '.join(f\\\"⏳ {t['id']}: {t['title'][:30]}\\\" for t in tasks[:3])) if tasks else print('—')\" 2>/dev/null || echo '—'",
