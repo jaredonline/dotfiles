@@ -4,25 +4,22 @@ You are recovering session context after a /clear, compaction, or new session. Y
 
 ### 1. Reload beads context
 
-Run `bd prime` to restore workflow rules, command reference, and persistent memories.
+Run `bd prime` to restore workflow rules and command reference. Then append persistent memories:
 
-If `bd` is not available (command not found), skip to Step 5 and note that beads is unavailable.
+```bash
+bd prime
+bd prime --export | sed -n '/^## Persistent Memories/,$p'
+```
+
+The first command outputs the PRIME.md override (custom workflow context). The second extracts the dynamic memories section from the default output and appends it.
+
+If `bd` is not available (command not found), skip to Step 4 and note that beads is unavailable.
 
 ### 2. Show active work
 
 Run `bd list --status=in_progress` to see currently claimed tasks.
 
-### 3. Regenerate PRIME.md
-
-If `.beads/PRIME.md` exists in the current directory, regenerate it:
-
-```bash
-bd prime --export > .beads/PRIME.md
-```
-
-PRIME.md is a cache, not authored content — regenerating is cheap and keeps it fresh.
-
-### 4. Resolve ancestor memory
+### 3. Resolve ancestor memory
 
 Read `$COCKPIT_DIR/project-tree.json` (skip if file missing or COCKPIT_DIR unset).
 
@@ -66,7 +63,7 @@ Skip gracefully if:
 - cwd is not found in the project tree
 - Python is not available
 
-### 5. Load recent daily summary
+### 4. Load recent daily summary
 
 Find and read the most recent daily summary:
 
@@ -78,7 +75,7 @@ If a file exists, read it with the Read tool. This contains PRs, action items, s
 
 If no file exists or `$COCKPIT_DIR` is unset, skip this step.
 
-### 6. Output status
+### 5. Output status
 
 Print a brief summary:
 

@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v bd >/dev/null && bd prime --stealth 2>/dev/null || true"
+            "command": "command -v bd >/dev/null && { bd prime --stealth; bd prime --export | sed -n '/^## Persistent Memories/,$p'; } 2>/dev/null || true"
           }
         ]
       }
@@ -33,7 +33,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v bd >/dev/null && bd prime --stealth 2>/dev/null || true"
+            "command": "command -v bd >/dev/null && { bd prime --stealth; bd prime --export | sed -n '/^## Persistent Memories/,$p'; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(bd *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "exit 0"
           }
         ]
       }
