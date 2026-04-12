@@ -18,7 +18,7 @@ use ui::AppState;
 #[derive(Parser)]
 #[command(name = "cockpit-dash", about = "Terminal dashboard for beads tasks")]
 struct Cli {
-    /// Path to project-tree.yml
+    /// Path to project-tree.json
     #[arg(long, default_value_t = default_config_path())]
     config: String,
 
@@ -37,11 +37,11 @@ struct Cli {
 
 fn default_config_path() -> String {
     if let Ok(cockpit_dir) = std::env::var("COCKPIT_DIR") {
-        format!("{}/project-tree.yml", cockpit_dir)
+        format!("{}/project-tree.json", cockpit_dir)
     } else if let Ok(home) = std::env::var("HOME") {
-        format!("{}/ai-cockpit/project-tree.yml", home)
+        format!("{}/ai-cockpit/project-tree.json", home)
     } else {
-        "project-tree.yml".to_string()
+        "project-tree.json".to_string()
     }
 }
 

@@ -24,16 +24,16 @@ PRIME.md is a cache, not authored content — regenerating is cheap and keeps it
 
 ### 4. Resolve ancestor memory
 
-Read `$COCKPIT_DIR/project-tree.yml` (skip if file missing or COCKPIT_DIR unset).
+Read `$COCKPIT_DIR/project-tree.json` (skip if file missing or COCKPIT_DIR unset).
 
 Use inline Python to find ancestor projects for the current working directory:
 
 ```bash
 python3 -c "
-import yaml, os, sys
+import json, os, sys
 cwd = os.getcwd()
 home = os.path.expanduser('~')
-tree = yaml.safe_load(open(os.environ.get('COCKPIT_DIR', home + '/ai-cockpit') + '/project-tree.yml'))
+tree = json.load(open(os.environ.get('COCKPIT_DIR', home + '/ai-cockpit') + '/project-tree.json'))
 
 def slug(path):
     expanded = os.path.expanduser(path)
@@ -43,7 +43,7 @@ def find_ancestors(projects, cwd, chain=[]):
     for p in (projects or []):
         path = os.path.expanduser(p.get('path', ''))
         if cwd.startswith(path) and cwd != path:
-            mem = home + '/.claude/projects' + slug(path) + '/memory/MEMORY.md'
+            mem = home + '/.claude/projects/' + slug(path) + '/memory/MEMORY.md'
             if os.path.exists(mem):
                 chain.append((p['name'], mem))
             find_ancestors(p.get('children', []), cwd, chain)
@@ -64,7 +64,7 @@ For each ancestor found, read the MEMORY.md file and output:
 Skip gracefully if:
 - COCKPIT_DIR is unset and ~/ai-cockpit/project-tree.yml doesn't exist
 - cwd is not found in the project tree
-- Python or PyYAML is not available
+- Python is not available
 
 ### 5. Load recent daily summary
 

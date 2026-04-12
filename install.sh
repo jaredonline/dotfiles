@@ -108,12 +108,12 @@ GITIGNORE
     echo "Cockpit initialized. Run 'bd init' in $cockpit_dir to set up beads."
   fi
 
-  if [[ ! -f "$cockpit_dir/project-tree.yml" ]]; then
-    cat > "$cockpit_dir/project-tree.yml" << 'YAML'
-# Project hierarchy for cockpit-dash and /prime memory resolution
-# Edit this file to match your project structure
-projects: []
-YAML
+  if [[ ! -f "$cockpit_dir/project-tree.json" ]]; then
+    cat > "$cockpit_dir/project-tree.json" << 'JSON'
+{
+  "projects": []
+}
+JSON
   fi
 }
 

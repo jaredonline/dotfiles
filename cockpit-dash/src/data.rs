@@ -51,13 +51,13 @@ pub struct Task {
     pub children: Vec<Task>,
 }
 
-/// Load project tree from YAML config file.
+/// Load project tree from JSON config file.
 pub fn load_project_tree(path: &str) -> Result<ProjectTree> {
     let expanded = shellexpand(path);
     let content = std::fs::read_to_string(&expanded)
-        .with_context(|| format!("Failed to read project-tree.yml at {}", expanded))?;
+        .with_context(|| format!("Failed to read project-tree.json at {}", expanded))?;
     let tree: ProjectTree =
-        serde_yaml::from_str(&content).context("Failed to parse project-tree.yml")?;
+        serde_json::from_str(&content).context("Failed to parse project-tree.json")?;
     Ok(tree)
 }
 
