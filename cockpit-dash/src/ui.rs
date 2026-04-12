@@ -440,6 +440,12 @@ fn render_tree(frame: &mut Frame, area: Rect, state: &AppState) {
                 };
                 spans.push(Span::styled(task.title.clone(), title_style));
 
+                // Beads ID
+                spans.push(Span::styled(
+                    format!("  ({})", task.id),
+                    Style::default().fg(theme::OVERLAY0),
+                ));
+
                 // Status
                 let color = theme::status_color(&task.status);
                 spans.push(Span::styled(
