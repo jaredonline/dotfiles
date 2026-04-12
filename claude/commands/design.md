@@ -106,8 +106,15 @@ For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY.
 Before writing the Tracking section, run `bd close <task-id>`.
 
 Write the design document to the cockpit state directory:
-- If `$COCKPIT_DIR` is set: `mkdir -p "$COCKPIT_DIR/state/designs"` and write the document to `$COCKPIT_DIR/state/designs/design-<slug>.md` where `<slug>` is a kebab-case version of the feature/system name (max 50 chars).
-- If `$COCKPIT_DIR` is not set: warn "COCKPIT_DIR not set — design written to conversation only"
+1. If `$COCKPIT_DIR` is unset or empty, stop: "COCKPIT_DIR is not set. Set it before running /design."
+2. `mkdir -p "$COCKPIT_DIR/state/designs"` and write the document to `$COCKPIT_DIR/state/designs/design-<slug>.md` where `<slug>` is a kebab-case version of the feature/system name (max 50 chars).
+3. Commit and push to the cockpit repo:
+   ```bash
+   git -C "$COCKPIT_DIR" add "state/designs/design-<slug>.md"
+   git -C "$COCKPIT_DIR" commit -m "design: <slug>"
+   git -C "$COCKPIT_DIR" push
+   ```
+   If any git command fails, warn the user but continue.
 
 Produce a markdown document with these sections:
 

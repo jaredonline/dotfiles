@@ -52,8 +52,15 @@ Combine all explorer findings into a single structured document. Resolve conflic
 ### 4. Output
 
 Write the exploration document to the cockpit state directory:
-- If `$COCKPIT_DIR` is set: `mkdir -p "$COCKPIT_DIR/state/explorations"` and write the document to `$COCKPIT_DIR/state/explorations/<slug>.md` where `<slug>` is a kebab-case version of the system/area name (max 50 chars).
-- If `$COCKPIT_DIR` is not set: warn "COCKPIT_DIR not set — exploration written to conversation only"
+1. If `$COCKPIT_DIR` is unset or empty, stop: "COCKPIT_DIR is not set. Set it before running /explore."
+2. `mkdir -p "$COCKPIT_DIR/state/explorations"` and write the document to `$COCKPIT_DIR/state/explorations/<slug>.md` where `<slug>` is a kebab-case version of the system/area name (max 50 chars).
+3. Commit and push to the cockpit repo:
+   ```bash
+   git -C "$COCKPIT_DIR" add "state/explorations/<slug>.md"
+   git -C "$COCKPIT_DIR" commit -m "exploration: <slug>"
+   git -C "$COCKPIT_DIR" push
+   ```
+   If any git command fails, warn the user but continue.
 
 Produce a markdown document with these sections:
 

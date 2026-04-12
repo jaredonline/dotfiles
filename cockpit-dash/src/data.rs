@@ -383,7 +383,8 @@ fn filter_tasks_by_text(tasks: &[Task], query: &str) -> Vec<Task> {
         .iter()
         .filter_map(|t| {
             let matches = t.title.to_lowercase().contains(query)
-                || t.id.to_lowercase().contains(query);
+                || t.id.to_lowercase().contains(query)
+                || t.status.to_lowercase().contains(query);
             let matching_children = filter_tasks_by_text(&t.children, query);
 
             if matches || !matching_children.is_empty() {

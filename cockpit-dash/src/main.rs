@@ -165,6 +165,7 @@ fn handle_key(
 
         // Label cycling
         KeyCode::Tab => state.cycle_label(),
+        KeyCode::BackTab => state.cycle_label_backward(),
 
         // Text filter
         KeyCode::Char('/') => {

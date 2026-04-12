@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
+    widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
     Frame,
 };
 
@@ -70,6 +70,7 @@ pub struct AppState {
     pub filter_mode: bool,
     pub bd_error: Option<String>,
     pub collapsed: std::collections::HashSet<String>,
+    pub filtered_projects: Vec<Project>,
 }
 
 impl AppState {
@@ -85,6 +86,7 @@ impl AppState {
             filter_mode: false,
             bd_error: None,
             collapsed: std::collections::HashSet::new(),
+            filtered_projects: vec![],
         }
     }
 
@@ -104,8 +106,10 @@ impl AppState {
             projects = data::filter_by_text(&projects, &self.filter_text);
         }
 
+        self.filtered_projects = projects;
+
         let mut items = Vec::new();
-        for project in &projects {
+        for project in &self.filtered_projects {
             flatten_project(project, 0, &self.collapsed, &mut items);
         }
         self.tree_items = items;
@@ -145,6 +149,12 @@ impl AppState {
     pub fn cycle_label(&mut self) {
         let total = self.all_labels.len() + 1; // +1 for ALL
         self.selected_label = (self.selected_label + 1) % total;
+        self.rebuild_tree();
+    }
+
+    pub fn cycle_label_backward(&mut self) {
+        let total = self.all_labels.len() + 1;
+        self.selected_label = (self.selected_label + total - 1) % total;
         self.rebuild_tree();
     }
 
@@ -222,11 +232,13 @@ pub fn render(frame: &mut Frame, state: &AppState) {
     let bg_block = Block::default().style(Style::default().bg(theme::BASE));
     frame.render_widget(bg_block, area);
 
+    let ip_items = collect_in_progress(&state.filtered_projects);
+
     let chunks = Layout::vertical([
         Constraint::Length(1), // header
         Constraint::Length(1), // label tabs
         Constraint::Length(1), // metrics bar
-        Constraint::Min(3),   // tree
+        Constraint::Min(3),   // content (tree + optional side panel)
         Constraint::Length(1), // help bar
     ])
     .split(area);
@@ -234,8 +246,91 @@ pub fn render(frame: &mut Frame, state: &AppState) {
     render_header(frame, chunks[0], state);
     render_label_tabs(frame, chunks[1], state);
     render_metrics(frame, chunks[2], state);
-    render_tree(frame, chunks[3], state);
+
+    if ip_items.is_empty() {
+        render_tree(frame, chunks[3], state);
+    } else {
+        let content = Layout::horizontal([
+            Constraint::Min(40),        // tree (takes remaining space)
+            Constraint::Length(40),      // in-progress side panel
+        ])
+        .split(chunks[3]);
+
+        render_tree(frame, content[0], state);
+        render_in_progress(frame, content[1], &ip_items);
+    }
+
     render_help(frame, chunks[4], state);
+}
+
+fn collect_in_progress(projects: &[Project]) -> Vec<(String, String)> {
+    let mut result = Vec::new();
+    for project in projects {
+        collect_ip_from_project(project, &mut result);
+    }
+    result
+}
+
+fn collect_ip_from_project(project: &Project, result: &mut Vec<(String, String)>) {
+    collect_ip_from_tasks(&project.tasks, &project.name, result);
+    for child in &project.children {
+        collect_ip_from_project(child, result);
+    }
+}
+
+fn collect_ip_from_tasks(tasks: &[Task], project_name: &str, result: &mut Vec<(String, String)>) {
+    for task in tasks {
+        if task.status == "in_progress" {
+            result.push((project_name.to_string(), task.title.clone()));
+        }
+        collect_ip_from_tasks(&task.children, project_name, result);
+    }
+}
+
+fn render_in_progress(frame: &mut Frame, area: Rect, items: &[(String, String)]) {
+    let title = Line::from(vec![
+        Span::styled(" In Progress ", Style::default()
+            .fg(theme::GREEN).add_modifier(Modifier::BOLD)),
+        Span::styled(format!("({})", items.len()), Style::default().fg(theme::OVERLAY0)),
+        Span::raw(" "),
+    ]);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(theme::SURFACE1))
+        .title(title)
+        .style(Style::default().bg(theme::SURFACE0));
+
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let max_tasks = inner.height as usize;
+    let has_overflow = items.len() > max_tasks;
+    let show_count = if has_overflow { max_tasks.saturating_sub(1) } else { max_tasks };
+
+    let mut lines = Vec::new();
+    for (project_name, task_title) in items.iter().take(show_count) {
+        lines.push(Line::from(vec![
+            Span::styled("● ", Style::default().fg(theme::GREEN)),
+            Span::styled(task_title.as_str(), Style::default().fg(theme::TEXT)),
+        ]));
+        lines.push(Line::from(Span::styled(
+            format!("  {}", project_name),
+            Style::default().fg(theme::OVERLAY0),
+        )));
+    }
+
+    if has_overflow {
+        lines.push(Line::from(Span::styled(
+            format!("  +{} more", items.len() - show_count),
+            Style::default().fg(theme::OVERLAY0),
+        )));
+    }
+
+    frame.render_widget(
+        Paragraph::new(lines),
+        inner,
+    );
 }
 
 fn render_header(frame: &mut Frame, area: Rect, state: &AppState) {
@@ -486,7 +581,7 @@ fn render_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let help_text = if state.filter_mode {
         format!("  /{}█  (Enter to apply, Esc to cancel)", state.filter_text)
     } else {
-        "  j/k:nav  Enter:expand  Tab:labels  /:filter  1-4:status  r:refresh  q:quit".to_string()
+        "  j/k:nav  Enter:expand  Tab/S-Tab:labels  /:filter  1-4:status  r:refresh  q:quit".to_string()
     };
 
     frame.render_widget(
