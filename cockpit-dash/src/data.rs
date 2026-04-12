@@ -33,6 +33,14 @@ pub struct Project {
 }
 
 #[derive(Deserialize, Clone, Debug)]
+pub struct Dependency {
+    #[serde(default)]
+    pub depends_on_id: String,
+    #[serde(default, rename = "type")]
+    pub dep_type: String,
+}
+
+#[derive(Deserialize, Clone, Debug)]
 pub struct Task {
     pub id: String,
     pub title: String,
@@ -46,8 +54,9 @@ pub struct Task {
     #[allow(dead_code)]
     pub assignee: String,
     #[serde(default)]
-    #[allow(dead_code)]
     pub parent: String,
+    #[serde(default)]
+    pub dependencies: Vec<Dependency>,
     #[serde(default)]
     #[allow(dead_code)]
     pub labels: Vec<String>,
@@ -68,11 +77,11 @@ pub fn load_project_tree(path: &str) -> Result<ProjectTree> {
     Ok(tree)
 }
 
-/// Run `bd list --json --tree` and parse the output.
+/// Run `bd list --json --limit 0` and build tree from parent fields.
 pub fn fetch_tasks() -> Result<Vec<Task>> {
     // Use a child process with a manual timeout via wait_with_output
     let child = Command::new("bd")
-        .args(["list", "--json", "--tree"])
+        .args(["list", "--json", "--limit", "0"])
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
@@ -101,9 +110,54 @@ pub fn fetch_tasks() -> Result<Vec<Task>> {
         );
     }
 
-    let tasks: Vec<Task> =
+    let flat_tasks: Vec<Task> =
         serde_json::from_slice(&output.stdout).context("Failed to parse bd JSON output")?;
-    Ok(tasks)
+    Ok(build_task_tree(flat_tasks))
+}
+
+/// Resolve the parent ID for a task, checking both the `parent` field
+/// and `dependencies` with type "parent" or "parent-child".
+fn resolve_parent(task: &Task) -> Option<String> {
+    if !task.parent.is_empty() {
+        return Some(task.parent.clone());
+    }
+    task.dependencies
+        .iter()
+        .find(|d| d.dep_type == "parent" || d.dep_type == "parent-child")
+        .map(|d| d.depends_on_id.clone())
+}
+
+/// Build a tree of tasks from a flat list using parent fields and dependencies.
+pub fn build_task_tree(flat_tasks: Vec<Task>) -> Vec<Task> {
+    let ids: std::collections::HashSet<String> =
+        flat_tasks.iter().map(|t| t.id.clone()).collect();
+
+    let mut children_of: HashMap<String, Vec<Task>> = HashMap::new();
+    let mut roots: Vec<Task> = Vec::new();
+
+    for task in flat_tasks {
+        match resolve_parent(&task) {
+            Some(parent_id) if ids.contains(&parent_id) => {
+                children_of.entry(parent_id).or_default().push(task);
+            }
+            _ => roots.push(task),
+        }
+    }
+
+    fn attach_children(task: &mut Task, children_of: &mut HashMap<String, Vec<Task>>) {
+        if let Some(mut children) = children_of.remove(&task.id) {
+            for child in &mut children {
+                attach_children(child, children_of);
+            }
+            task.children = children;
+        }
+    }
+
+    for root in &mut roots {
+        attach_children(root, &mut children_of);
+    }
+
+    roots
 }
 
 /// Group tasks into projects based on prefix matching.
@@ -346,4 +400,159 @@ fn filter_tasks_by_text(tasks: &[Task], query: &str) -> Vec<Task> {
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn task(id: &str, title: &str, parent: &str, deps: Vec<(&str, &str)>) -> Task {
+        Task {
+            id: id.to_string(),
+            title: title.to_string(),
+            status: "open".to_string(),
+            task_type: if title.starts_with("[epic]") { "epic".to_string() } else { "task".to_string() },
+            priority: 1,
+            assignee: String::new(),
+            parent: parent.to_string(),
+            dependencies: deps.into_iter().map(|(dep_id, dep_type)| Dependency {
+                depends_on_id: dep_id.to_string(),
+                dep_type: dep_type.to_string(),
+            }).collect(),
+            labels: vec![],
+            updated_at: String::new(),
+            children: vec![],
+        }
+    }
+
+    fn count_all(tasks: &[Task]) -> usize {
+        tasks.iter().map(|t| 1 + count_all(&t.children)).sum()
+    }
+
+    fn find_task<'a>(tasks: &'a [Task], id: &str) -> Option<&'a Task> {
+        for t in tasks {
+            if t.id == id { return Some(t); }
+            if let Some(found) = find_task(&t.children, id) { return Some(found); }
+        }
+        None
+    }
+
+    #[test]
+    fn test_tree_from_parent_field() {
+        let tasks = vec![
+            task("epic-1", "[epic] Top", "", vec![]),
+            task("task-a", "Child A", "epic-1", vec![]),
+            task("task-b", "Child B", "epic-1", vec![]),
+        ];
+        let tree = build_task_tree(tasks);
+        assert_eq!(tree.len(), 1, "should have 1 root");
+        assert_eq!(tree[0].children.len(), 2, "epic should have 2 children");
+        assert_eq!(count_all(&tree), 3, "total should be 3");
+    }
+
+    #[test]
+    fn test_tree_from_dependency_type_parent() {
+        let tasks = vec![
+            task("epic-1", "[epic] Top", "", vec![]),
+            task("task-a", "Child A", "", vec![("epic-1", "parent")]),
+            task("task-b", "Child B", "", vec![("epic-1", "parent")]),
+        ];
+        let tree = build_task_tree(tasks);
+        assert_eq!(tree.len(), 1, "should have 1 root");
+        assert_eq!(tree[0].children.len(), 2, "epic should have 2 children via deps");
+    }
+
+    #[test]
+    fn test_tree_from_dependency_type_parent_child() {
+        let tasks = vec![
+            task("epic-1", "[epic] Top", "", vec![]),
+            task("task-a", "Child A", "", vec![("epic-1", "parent-child")]),
+        ];
+        let tree = build_task_tree(tasks);
+        assert_eq!(tree.len(), 1);
+        assert_eq!(tree[0].children.len(), 1);
+    }
+
+    #[test]
+    fn test_tree_mixed_parent_and_deps() {
+        // Some tasks use parent field, others use dependencies
+        let tasks = vec![
+            task("epic-1", "[epic] Top", "", vec![]),
+            task("task-a", "Via parent field", "epic-1", vec![]),
+            task("task-b", "Via dep", "", vec![("epic-1", "parent")]),
+        ];
+        let tree = build_task_tree(tasks);
+        assert_eq!(tree.len(), 1);
+        assert_eq!(tree[0].children.len(), 2);
+    }
+
+    #[test]
+    fn test_tree_multi_level_nesting() {
+        let tasks = vec![
+            task("root", "[epic] Root", "", vec![]),
+            task("mid", "[epic] Mid", "root", vec![]),
+            task("leaf", "Leaf", "mid", vec![]),
+        ];
+        let tree = build_task_tree(tasks);
+        assert_eq!(tree.len(), 1);
+        assert_eq!(tree[0].children.len(), 1);
+        assert_eq!(tree[0].children[0].children.len(), 1);
+        assert_eq!(tree[0].children[0].children[0].id, "leaf");
+    }
+
+    #[test]
+    fn test_tree_deep_nesting_via_deps() {
+        let tasks = vec![
+            task("l0", "[epic] Level 0", "", vec![]),
+            task("l1", "[epic] Level 1", "", vec![("l0", "parent")]),
+            task("l2", "[epic] Level 2", "", vec![("l1", "parent")]),
+            task("l3", "Level 3", "", vec![("l2", "parent")]),
+        ];
+        let tree = build_task_tree(tasks);
+        assert_eq!(tree.len(), 1);
+        assert_eq!(count_all(&tree), 4);
+        let l3 = find_task(&tree, "l3").expect("should find l3");
+        assert_eq!(l3.title, "Level 3");
+    }
+
+    #[test]
+    fn test_tree_orphan_parent_stays_root() {
+        // Task references a parent that doesn't exist in the list
+        let tasks = vec![
+            task("task-a", "Orphan", "nonexistent", vec![]),
+            task("task-b", "Root", "", vec![]),
+        ];
+        let tree = build_task_tree(tasks);
+        assert_eq!(tree.len(), 2, "orphan should be treated as root");
+    }
+
+    #[test]
+    fn test_tree_preserves_all_tasks() {
+        let tasks = vec![
+            task("epic-1", "[epic] Epic 1", "", vec![]),
+            task("epic-2", "[epic] Epic 2", "", vec![]),
+            task("t1", "Task 1", "epic-1", vec![]),
+            task("t2", "Task 2", "", vec![("epic-1", "parent")]),
+            task("t3", "Task 3", "epic-2", vec![]),
+            task("t4", "Task 4", "", vec![]),
+            task("t5", "Orphan", "gone", vec![]),
+        ];
+        let tree = build_task_tree(tasks);
+        assert_eq!(count_all(&tree), 7, "all tasks must be accounted for");
+    }
+
+    #[test]
+    fn test_parent_field_takes_precedence_over_dep() {
+        // Task has both parent field and a different dep — parent field wins
+        let tasks = vec![
+            task("epic-a", "[epic] A", "", vec![]),
+            task("epic-b", "[epic] B", "", vec![]),
+            task("t1", "Task", "epic-a", vec![("epic-b", "parent")]),
+        ];
+        let tree = build_task_tree(tasks);
+        let epic_a = find_task(&tree, "epic-a").unwrap();
+        assert_eq!(epic_a.children.len(), 1, "parent field should win");
+        let epic_b = find_task(&tree, "epic-b").unwrap();
+        assert_eq!(epic_b.children.len(), 0);
+    }
 }
