@@ -26,29 +26,7 @@ Read `$COCKPIT_DIR/project-tree.json` (skip if file missing or COCKPIT_DIR unset
 Use inline Python to find ancestor projects for the current working directory:
 
 ```bash
-python3 -c "
-import json, os, sys
-cwd = os.getcwd()
-home = os.path.expanduser('~')
-tree = json.load(open(os.environ.get('COCKPIT_DIR', home + '/ai-cockpit') + '/project-tree.json'))
-
-def slug(path):
-    expanded = os.path.expanduser(path)
-    return '-' + expanded.lstrip('/').replace('/', '-')
-
-def find_ancestors(projects, cwd, chain=[]):
-    for p in (projects or []):
-        path = os.path.expanduser(p.get('path', ''))
-        if cwd.startswith(path) and cwd != path:
-            mem = home + '/.claude/projects/' + slug(path) + '/memory/MEMORY.md'
-            if os.path.exists(mem):
-                chain.append((p['name'], mem))
-            find_ancestors(p.get('children', []), cwd, chain)
-    return chain
-
-for name, mem in find_ancestors(tree.get('projects', []), cwd):
-    print(f'{name}\t{mem}')
-" 2>/dev/null
+python3 ~/.claude/scripts/ancestor-memory.py
 ```
 
 For each ancestor found, read the MEMORY.md file and output:
@@ -68,7 +46,7 @@ Skip gracefully if:
 Find and read the most recent daily summary:
 
 ```bash
-LATEST=$(ls -1 "$COCKPIT_DIR/state/news"/????/??/????-??-??.md 2>/dev/null | tail -1)
+LATEST=$(~/.claude/scripts/latest-summary.sh)
 ```
 
 If a file exists, read it with the Read tool. This contains PRs, action items, stack status, and review activity.

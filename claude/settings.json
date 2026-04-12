@@ -9,7 +9,8 @@
   },
   "permissions": {
     "allow": [
-      "Bash(bd *)"
+      "Bash(bd *)",
+      "Bash(~/.claude/scripts/*)"
     ]
   },
   "env": {

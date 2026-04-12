@@ -82,6 +82,11 @@ merge_md "CLAUDE.md" "local/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 for cmd in "$DOTFILES"/claude/commands/*.md; do
   link_file "claude/commands/$(basename "$cmd")" "$HOME/.claude/commands/$(basename "$cmd")"
 done
+# Symlink claude scripts
+mkdir -p "$HOME/.claude/scripts"
+for script in "$DOTFILES"/claude/scripts/*; do
+  link_file "claude/scripts/$(basename "$script")" "$HOME/.claude/scripts/$(basename "$script")"
+done
 
 # Tool setup (run once)
 if command -v gh &>/dev/null && ! git config --global credential.https://github.com.helper &>/dev/null; then
