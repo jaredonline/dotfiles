@@ -1,19 +1,11 @@
 layout {
-    // zjstatus bar — shows bd task counts
-    pane size=1 borderless=true {
-        plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
-            format_left  "{mode} {tabs}"
-            format_right "{command_bd_active} active | {command_bd_open} open"
-
-            command_bd_active_command    "bash -c 'command -v bd >/dev/null && bd count --status=in_progress 2>/dev/null || echo 0'"
-            command_bd_active_format     "{stdout}"
-            command_bd_active_interval   "10"
-            command_bd_active_rendermode "static"
-
-            command_bd_open_command    "bash -c 'command -v bd >/dev/null && bd count --status=open 2>/dev/null || echo 0'"
-            command_bd_open_format     "{stdout}"
-            command_bd_open_interval   "10"
-            command_bd_open_rendermode "static"
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
         }
     }
 
@@ -21,11 +13,11 @@ layout {
         pane command="cockpit-dash"
     }
 
-    tab name="shell" {
+    tab name="shell" cwd="~/ai-cockpit" {
         pane
     }
 
-    tab name="claude" {
+    tab name="claude" cwd="~/ai-cockpit" {
         pane command="claude"
     }
 }

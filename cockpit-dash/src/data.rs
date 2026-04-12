@@ -12,6 +12,7 @@ pub struct ProjectTree {
 pub struct ProjectConfig {
     pub id: String,
     pub name: String,
+    #[allow(dead_code)]
     pub path: String,
     pub prefix: String,
     #[serde(default)]
@@ -25,6 +26,7 @@ pub struct Project {
     pub id: String,
     pub name: String,
     pub labels: Vec<String>,
+    #[allow(dead_code)]
     pub prefix: String,
     pub tasks: Vec<Task>,
     pub children: Vec<Project>,
@@ -38,14 +40,19 @@ pub struct Task {
     #[serde(default, alias = "issue_type")]
     pub task_type: String,
     #[serde(default)]
+    #[allow(dead_code)]
     pub priority: i32,
-    #[serde(default, alias = "owner")]
+    #[serde(default, rename = "owner")]
+    #[allow(dead_code)]
     pub assignee: String,
     #[serde(default)]
+    #[allow(dead_code)]
     pub parent: String,
     #[serde(default)]
+    #[allow(dead_code)]
     pub labels: Vec<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     pub updated_at: String,
     #[serde(default)]
     pub children: Vec<Task>,

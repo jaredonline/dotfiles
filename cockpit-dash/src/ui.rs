@@ -25,6 +25,7 @@ pub enum TreeItemKind {
 }
 
 impl TreeItem {
+    #[allow(dead_code)]
     pub fn display_name(&self) -> String {
         match &self.kind {
             TreeItemKind::Project(p) => p.name.clone(),
@@ -32,6 +33,7 @@ impl TreeItem {
         }
     }
 
+    #[allow(dead_code)]
     pub fn status(&self) -> Option<&str> {
         match &self.kind {
             TreeItemKind::Project(_) => None,
@@ -39,6 +41,7 @@ impl TreeItem {
         }
     }
 
+    #[allow(dead_code)]
     pub fn labels(&self) -> &[String] {
         match &self.kind {
             TreeItemKind::Project(p) => &p.labels,
@@ -61,6 +64,7 @@ pub struct AppState {
     pub selected_label: usize, // 0 = ALL
     pub tree_items: Vec<TreeItem>,
     pub selected: usize,
+    #[allow(dead_code)]
     pub scroll_offset: usize,
     pub filter_text: String,
     pub filter_mode: bool,
@@ -144,6 +148,7 @@ impl AppState {
         self.rebuild_tree();
     }
 
+    #[allow(dead_code)]
     pub fn set_status_filter(&mut self, status: &str) {
         if status == "all" {
             self.filter_text.clear();

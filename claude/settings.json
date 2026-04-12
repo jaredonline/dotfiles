@@ -40,7 +40,8 @@
     ]
   },
   "statusLine": {
-    "content": "command -v bd >/dev/null 2>&1 && bd list --status=in_progress --flat --json 2>/dev/null | python3 -c \"import sys,json; tasks=json.load(sys.stdin); print(' | '.join(f\\\"⏳ {t['id']}: {t['title'][:30]}\\\" for t in tasks[:3])) if tasks else print('—')\" 2>/dev/null || echo '—'",
+    "type": "command",
+    "command": "command -v bd >/dev/null 2>&1 && bd list --status=in_progress --flat --json 2>/dev/null | python3 -c \"import sys,json; tasks=json.load(sys.stdin); print(' | '.join(f\\\"⏳ {t['id']}: {t['title'][:30]}\\\" for t in tasks[:3])) if tasks else print('—')\" 2>/dev/null || echo '—'",
     "refreshInterval": 30
   }
 }
