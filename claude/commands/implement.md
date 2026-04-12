@@ -72,7 +72,7 @@ For each ready task (no unresolved deps), spawn a worker:
 **Worker** (Agent, model=opus):
 > You are implementing one task from a design.
 >
-> ## Your Task
+> ## Your Task: [task-id]
 > [paste task description from Beads, including interface spec and file scope]
 >
 > ## Interface Spec
@@ -83,12 +83,19 @@ For each ready task (no unresolved deps), spawn a worker:
 > - Create: [file paths]
 >
 > ## Rules
+> - Claim your Beads task before starting: `bd update [task-id] --claim`
 > - Follow the interface spec exactly — do not add methods, fields, or parameters not in the spec
 > - Match existing code patterns in the repo (error handling, naming, structure)
 > - Write tests for the code you write
 > - Do not modify files outside your task scope
 > - Do not run any git commands (no commits, no branching, no stashing)
 > - If you're blocked or find the design is ambiguous, report the issue — do not guess
+> - If you discover work outside your task scope (missing APIs, tech debt, schema gaps), report it at the end of your output:
+>   ```
+>   ## Discovered Work
+>   - [title]: [one-line description]
+>   ```
+>   Do not create beads tasks yourself — the orchestrator will file them
 
 Spawn ALL ready workers in ONE message.
 
@@ -101,6 +108,8 @@ After all workers complete:
 - Review the changes made by all workers for consistency
 - Run any existing tests (`go test ./...`, `npm test`, `pytest`, etc.)
 - Fix integration issues — these are usually import paths, type mismatches, or missing glue code
+- Collect `## Discovered Work` sections from all worker outputs
+- Create beads tasks for discovered items: `bd create --title="[title]" --description="[description]" --type=task --parent=<epic-id>`
 - Do not run any git commands (no commits, no branching)
 
 If any check fails, fix it before reporting.
@@ -124,8 +133,9 @@ Report to the user:
 ## Test Results
 [pass/fail summary]
 
-## Deviations
+## Deviations & Discovered Work
 [any differences from the design, with rationale]
+[newly created task IDs for discovered work, or "None"]
 
 ## Tracking
 - Beads: <orchestration-task-id> — closed
