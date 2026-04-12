@@ -64,6 +64,8 @@ pub struct Task {
     #[allow(dead_code)]
     pub updated_at: String,
     #[serde(default)]
+    pub description: String,
+    #[serde(default)]
     pub children: Vec<Task>,
 }
 
@@ -422,6 +424,7 @@ mod tests {
             }).collect(),
             labels: vec![],
             updated_at: String::new(),
+            description: String::new(),
             children: vec![],
         }
     }

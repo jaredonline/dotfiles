@@ -9,6 +9,13 @@ use ratatui::{
 use crate::data::{self, Project, Task};
 use crate::theme;
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum ViewMode {
+    List,
+    Detail,
+    Filter,
+}
+
 /// A flattened tree item for rendering and navigation.
 #[derive(Clone, Debug)]
 pub struct TreeItem {
@@ -67,10 +74,14 @@ pub struct AppState {
     #[allow(dead_code)]
     pub scroll_offset: usize,
     pub filter_text: String,
-    pub filter_mode: bool,
     pub bd_error: Option<String>,
     pub collapsed: std::collections::HashSet<String>,
     pub filtered_projects: Vec<Project>,
+    pub view_mode: ViewMode,
+    pub nav_stack: Vec<String>,
+    pub detail_scroll: u16,
+    pub pending_g: bool,
+    pub last_content_height: u16,
 }
 
 impl AppState {
@@ -83,10 +94,14 @@ impl AppState {
             selected: 0,
             scroll_offset: 0,
             filter_text: String::new(),
-            filter_mode: false,
             bd_error: None,
             collapsed: std::collections::HashSet::new(),
             filtered_projects: vec![],
+            view_mode: ViewMode::List,
+            nav_stack: vec![],
+            detail_scroll: 0,
+            pending_g: false,
+            last_content_height: 0,
         }
     }
 
@@ -172,6 +187,30 @@ impl AppState {
     pub fn selected_task_id(&self) -> Option<&str> {
         self.tree_items.get(self.selected).map(|item| item.id.as_str())
     }
+
+    /// Enter detail view for the given task ID. Pushes to nav stack.
+    pub fn enter_detail(&mut self, task_id: String) {
+        self.nav_stack.push(task_id);
+        self.detail_scroll = 0;
+        self.pending_g = false;
+        self.view_mode = ViewMode::Detail;
+    }
+
+    /// Go back from detail view. Pops nav stack.
+    pub fn exit_detail(&mut self) {
+        self.nav_stack.pop();
+        if self.nav_stack.is_empty() {
+            self.view_mode = ViewMode::List;
+        } else {
+            self.detail_scroll = 0;
+            self.pending_g = false;
+        }
+    }
+
+    /// Get the current detail task ID (last item on nav stack).
+    pub fn current_detail_id(&self) -> Option<&str> {
+        self.nav_stack.last().map(|s| s.as_str())
+    }
 }
 
 fn flatten_project(
@@ -224,43 +263,51 @@ fn flatten_task(
     }
 }
 
-/// Render the full UI.
-pub fn render(frame: &mut Frame, state: &AppState) {
+/// Render the full UI. Returns content height for detail view scroll bounds.
+pub fn render(frame: &mut Frame, state: &AppState) -> u16 {
     let area = frame.area();
 
     // Background
     let bg_block = Block::default().style(Style::default().bg(theme::BASE));
     frame.render_widget(bg_block, area);
 
-    let ip_items = collect_in_progress(&state.filtered_projects);
+    match state.view_mode {
+        ViewMode::List | ViewMode::Filter => {
+            let ip_items = collect_in_progress(&state.filtered_projects);
 
-    let chunks = Layout::vertical([
-        Constraint::Length(1), // header
-        Constraint::Length(1), // label tabs
-        Constraint::Length(1), // metrics bar
-        Constraint::Min(3),   // content (tree + optional side panel)
-        Constraint::Length(1), // help bar
-    ])
-    .split(area);
+            let chunks = Layout::vertical([
+                Constraint::Length(1), // header
+                Constraint::Length(1), // label tabs
+                Constraint::Length(1), // metrics bar
+                Constraint::Min(3),   // content (tree + optional side panel)
+                Constraint::Length(1), // help bar
+            ])
+            .split(area);
 
-    render_header(frame, chunks[0], state);
-    render_label_tabs(frame, chunks[1], state);
-    render_metrics(frame, chunks[2], state);
+            render_header(frame, chunks[0], state);
+            render_label_tabs(frame, chunks[1], state);
+            render_metrics(frame, chunks[2], state);
 
-    if ip_items.is_empty() {
-        render_tree(frame, chunks[3], state);
-    } else {
-        let content = Layout::horizontal([
-            Constraint::Min(40),        // tree (takes remaining space)
-            Constraint::Length(40),      // in-progress side panel
-        ])
-        .split(chunks[3]);
+            if ip_items.is_empty() {
+                render_tree(frame, chunks[3], state);
+            } else {
+                let content = Layout::horizontal([
+                    Constraint::Min(40),
+                    Constraint::Length(40),
+                ])
+                .split(chunks[3]);
 
-        render_tree(frame, content[0], state);
-        render_in_progress(frame, content[1], &ip_items);
+                render_tree(frame, content[0], state);
+                render_in_progress(frame, content[1], &ip_items);
+            }
+
+            render_help(frame, chunks[4], state);
+            0
+        }
+        ViewMode::Detail => {
+            crate::detail::render_detail(frame, area, state)
+        }
     }
-
-    render_help(frame, chunks[4], state);
 }
 
 fn collect_in_progress(projects: &[Project]) -> Vec<(String, String)> {
@@ -578,7 +625,7 @@ fn render_tree(frame: &mut Frame, area: Rect, state: &AppState) {
 }
 
 fn render_help(frame: &mut Frame, area: Rect, state: &AppState) {
-    let help_text = if state.filter_mode {
+    let help_text = if state.view_mode == ViewMode::Filter {
         format!("  /{}█  (Enter to apply, Esc to cancel)", state.filter_text)
     } else {
         "  j/k:nav  Enter:expand  Tab/S-Tab:labels  /:filter  1-4:status  r:refresh  q:quit".to_string()

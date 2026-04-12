@@ -1,4 +1,5 @@
 mod data;
+mod detail;
 mod theme;
 mod ui;
 
@@ -98,7 +99,10 @@ fn run_app(
 
     loop {
         // Render
-        terminal.draw(|frame| ui::render(frame, state))?;
+        terminal.draw(|frame| {
+            let content_height = ui::render(frame, state);
+            state.last_content_height = content_height;
+        })?;
 
         // Poll for events with timeout for refresh
         let timeout = refresh_interval
@@ -127,31 +131,43 @@ fn handle_key(
     project_tree: &data::ProjectTree,
     cli: &Cli,
 ) -> Result<bool> {
-    // Filter mode handles input differently
-    if state.filter_mode {
-        match key.code {
-            KeyCode::Esc => {
-                state.filter_mode = false;
-                state.filter_text.clear();
-                state.rebuild_tree();
-            }
-            KeyCode::Enter => {
-                state.filter_mode = false;
-                state.rebuild_tree();
-            }
-            KeyCode::Backspace => {
-                state.filter_text.pop();
-                state.rebuild_tree();
-            }
-            KeyCode::Char(c) => {
-                state.filter_text.push(c);
-                state.rebuild_tree();
-            }
-            _ => {}
-        }
-        return Ok(false);
+    match state.view_mode {
+        ui::ViewMode::Filter => handle_filter_key(key, state),
+        ui::ViewMode::Detail => detail::handle_detail_key(key, state),
+        ui::ViewMode::List => handle_list_key(key, state, project_tree, cli),
     }
+}
 
+fn handle_filter_key(key: KeyEvent, state: &mut AppState) -> Result<bool> {
+    match key.code {
+        KeyCode::Esc => {
+            state.view_mode = ui::ViewMode::List;
+            state.filter_text.clear();
+            state.rebuild_tree();
+        }
+        KeyCode::Enter => {
+            state.view_mode = ui::ViewMode::List;
+            state.rebuild_tree();
+        }
+        KeyCode::Backspace => {
+            state.filter_text.pop();
+            state.rebuild_tree();
+        }
+        KeyCode::Char(c) => {
+            state.filter_text.push(c);
+            state.rebuild_tree();
+        }
+        _ => {}
+    }
+    Ok(false)
+}
+
+fn handle_list_key(
+    key: KeyEvent,
+    state: &mut AppState,
+    project_tree: &data::ProjectTree,
+    cli: &Cli,
+) -> Result<bool> {
     match key.code {
         KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => return Ok(true),
@@ -163,13 +179,23 @@ fn handle_key(
         // Expand/collapse
         KeyCode::Enter => state.toggle_selected(),
 
+        // Enter detail view
+        KeyCode::Right | KeyCode::Char('l') => {
+            if let Some(task_id) = state.selected_task_id() {
+                let task_id = task_id.to_string();
+                if let Some(id) = task_id.strip_prefix("task:") {
+                    state.enter_detail(id.to_string());
+                }
+            }
+        }
+
         // Label cycling
         KeyCode::Tab => state.cycle_label(),
         KeyCode::BackTab => state.cycle_label_backward(),
 
         // Text filter
         KeyCode::Char('/') => {
-            state.filter_mode = true;
+            state.view_mode = ui::ViewMode::Filter;
             state.filter_text.clear();
         }
 
@@ -200,7 +226,6 @@ fn handle_key(
         KeyCode::Char('o') => {
             if let Some(task_id) = state.selected_task_id() {
                 let task_id = task_id.to_string();
-                // Strip prefix from task ID
                 if let Some(id) = task_id.strip_prefix("task:") {
                     open_in_editor(id);
                 }
@@ -209,9 +234,7 @@ fn handle_key(
 
         // Quick-add todo
         KeyCode::Char('n') => {
-            // Exit TUI temporarily to get input
             // For now, this is a no-op since we'd need to handle terminal state
-            // TODO: implement inline input
         }
 
         _ => {}
