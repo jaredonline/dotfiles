@@ -10,7 +10,9 @@
   "permissions": {
     "allow": [
       "Bash(bd *)",
-      "Bash(~/.claude/scripts/*)"
+      "Bash(~/.claude/scripts/*)",
+      "Bash(python3 ~/.claude/scripts/*)",
+      "Bash(*/.claude/scripts/latest-summary.sh*)"
     ]
   },
   "env": {
