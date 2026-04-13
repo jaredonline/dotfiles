@@ -108,9 +108,15 @@ Before writing the Tracking section, run `bd close <task-id>`.
 Write the design document to the cockpit state directory:
 1. If `$COCKPIT_DIR` is unset or empty, stop: "COCKPIT_DIR is not set. Set it before running /design."
 2. `mkdir -p "$COCKPIT_DIR/state/designs"` and write the document to `$COCKPIT_DIR/state/designs/design-<slug>.md` where `<slug>` is a kebab-case version of the feature/system name (max 50 chars).
-3. Commit and push to the cockpit repo:
+3. **Archive consumed exploration.** If this design was informed by an exploration document in `$COCKPIT_DIR/state/explorations/`, move it to `finished/`:
    ```bash
-   git -C "$COCKPIT_DIR" add "state/designs/design-<slug>.md"
+   mkdir -p "$COCKPIT_DIR/state/explorations/finished"
+   mv "$COCKPIT_DIR/state/explorations/<exploration-file>.md" "$COCKPIT_DIR/state/explorations/finished/"
+   ```
+   If no exploration was consumed, skip this step.
+4. Commit and push to the cockpit repo:
+   ```bash
+   git -C "$COCKPIT_DIR" add -A state/designs/ state/explorations/
    git -C "$COCKPIT_DIR" commit -m "design: <slug>"
    git -C "$COCKPIT_DIR" push
    ```

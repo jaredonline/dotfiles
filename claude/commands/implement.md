@@ -19,7 +19,8 @@ If no design is available, stop and tell the user to run /design first.
 | 4. Create shared interfaces | No — main agent | Must exist before workers start |
 | 5. Spawn workers | Yes — all workers | Independent implementation tasks |
 | 6. Integrate | No — main agent | Verify changes, run tests |
-| 7. Close tasks and report | No — main agent | Summarizes results with ## Tracking |
+| 7. Archive consumed design | No — main agent | Move design to finished/ in cockpit |
+| 8. Close tasks and report | No — main agent | Summarizes results with ## Tracking |
 
 ## Process
 
@@ -114,7 +115,19 @@ After all workers complete:
 
 If any check fails, fix it before reporting.
 
-### 7. Close tasks and report
+### 7. Archive consumed design
+
+If the design document lives in `$COCKPIT_DIR/state/designs/`, move it to `finished/`:
+```bash
+mkdir -p "$COCKPIT_DIR/state/designs/finished"
+mv "$COCKPIT_DIR/state/designs/<design-file>.md" "$COCKPIT_DIR/state/designs/finished/"
+git -C "$COCKPIT_DIR" add -A state/designs/
+git -C "$COCKPIT_DIR" commit -m "finished: <design-slug>"
+git -C "$COCKPIT_DIR" push
+```
+If `$COCKPIT_DIR` is unset, the design wasn't from the cockpit, or any git command fails, skip this step.
+
+### 8. Close tasks and report
 
 For each completed task: `bd close <task-id>`
 Close the orchestration task: `bd close <orchestration-task-id>`
@@ -145,7 +158,7 @@ Report to the user:
 ## Rules
 
 - **Do not start without a design** — if there's no design document, stop
-- **No git operations** — do not commit, branch, stash, merge, or run any git commands. The user manages git themselves
+- **No git operations in the working repo** — do not commit, branch, stash, merge, or run any git commands in the project repo. The user manages git themselves. Exception: cockpit repo git operations in Step 7 (archiving the design) are allowed.
 - **No worktrees** — do not use `isolation: "worktree"` on worker agents
 - **Shared interfaces first** — create them before spawning workers to prevent drift
 - **Workers follow the spec exactly** — no freelancing, no extra methods, no bonus abstractions
