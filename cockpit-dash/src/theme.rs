@@ -14,6 +14,7 @@ pub const RED: Color = Color::Rgb(243, 139, 168); // #f38ba8
 pub const YELLOW: Color = Color::Rgb(249, 226, 175); // #f9e2af
 pub const MAUVE: Color = Color::Rgb(203, 166, 247); // #cba6f7
 pub const PEACH: Color = Color::Rgb(250, 179, 135); // #fab387
+pub const SAPPHIRE: Color = Color::Rgb(116, 199, 236); // #74c7ec
 
 pub fn status_color(status: &str) -> Color {
     match status {

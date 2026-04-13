@@ -28,6 +28,11 @@ pub struct TreeItem {
 #[derive(Clone, Debug)]
 pub enum TreeItemKind {
     Project(Project),
+    LabelGroup {
+        #[allow(dead_code)]
+        key: String,
+        name: String,
+    },
     Task(Task),
 }
 
@@ -36,6 +41,7 @@ impl TreeItem {
     pub fn display_name(&self) -> String {
         match &self.kind {
             TreeItemKind::Project(p) => p.name.clone(),
+            TreeItemKind::LabelGroup { name, .. } => name.clone(),
             TreeItemKind::Task(t) => t.title.clone(),
         }
     }
@@ -44,6 +50,7 @@ impl TreeItem {
     pub fn status(&self) -> Option<&str> {
         match &self.kind {
             TreeItemKind::Project(_) => None,
+            TreeItemKind::LabelGroup { .. } => None,
             TreeItemKind::Task(t) => Some(&t.status),
         }
     }
@@ -51,7 +58,8 @@ impl TreeItem {
     #[allow(dead_code)]
     pub fn labels(&self) -> &[String] {
         match &self.kind {
-            TreeItemKind::Project(p) => &p.labels,
+            TreeItemKind::Project(_) => &[],
+            TreeItemKind::LabelGroup { .. } => &[],
             TreeItemKind::Task(_) => &[],
         }
     }
@@ -59,6 +67,7 @@ impl TreeItem {
     pub fn is_collapsible(&self) -> bool {
         match &self.kind {
             TreeItemKind::Project(_) => true,
+            TreeItemKind::LabelGroup { .. } => true,
             TreeItemKind::Task(t) => t.task_type == "epic" || !t.children.is_empty(),
         }
     }
@@ -67,8 +76,7 @@ impl TreeItem {
 /// App state for the UI.
 pub struct AppState {
     pub projects: Vec<Project>,
-    pub all_labels: Vec<String>,
-    pub selected_label: usize, // 0 = ALL
+    pub selected_project: usize, // 0 = ALL
     pub tree_items: Vec<TreeItem>,
     pub selected: usize,
     #[allow(dead_code)]
@@ -88,8 +96,7 @@ impl AppState {
     pub fn new() -> Self {
         Self {
             projects: vec![],
-            all_labels: vec![],
-            selected_label: 0,
+            selected_project: 0,
             tree_items: vec![],
             selected: 0,
             scroll_offset: 0,
@@ -107,29 +114,97 @@ impl AppState {
 
     /// Rebuild the flat tree items from the current projects + filters.
     pub fn rebuild_tree(&mut self) {
-        let mut projects = self.projects.clone();
+        let mut items = Vec::new();
 
-        // Apply label filter
-        if self.selected_label > 0 {
-            if let Some(label) = self.all_labels.get(self.selected_label - 1) {
-                projects = data::filter_by_label(&projects, label);
+        if self.selected_project == 0 {
+            // ALL view: projects -> tasks (no label sub-grouping)
+            let mut projects = self.projects.clone();
+            if !self.filter_text.is_empty() {
+                projects = data::filter_by_text(&projects, &self.filter_text);
+            }
+            self.filtered_projects = projects;
+            for project in &self.filtered_projects {
+                flatten_project(project, 0, &self.collapsed, &mut items);
+            }
+        } else if let Some(project) = self.projects.get(self.selected_project - 1) {
+            // Project view: label groups -> tasks
+            self.filtered_projects = vec![project.clone()];
+
+            // Collect all tasks from project + children recursively
+            let all_tasks = collect_all_tasks(project);
+
+            // Apply text filter
+            let tasks: Vec<&Task> = if self.filter_text.is_empty() {
+                all_tasks.iter().collect()
+            } else {
+                let query = self.filter_text.to_lowercase();
+                all_tasks.iter().filter(|t| {
+                    t.title.to_lowercase().contains(&query)
+                        || t.id.to_lowercase().contains(&query)
+                        || t.status.to_lowercase().contains(&query)
+                }).collect()
+            };
+
+            let mut matched_ids = std::collections::HashSet::new();
+
+            for label_def in &project.label_defs {
+                let matching: Vec<&Task> = tasks.iter()
+                    .filter(|t| t.labels.iter().any(|l| l == &label_def.key))
+                    .copied()
+                    .collect();
+
+                if !matching.is_empty() {
+                    let group_id = format!("label:{}", label_def.key);
+                    let is_collapsed = self.collapsed.contains(&group_id);
+
+                    items.push(TreeItem {
+                        depth: 0,
+                        kind: TreeItemKind::LabelGroup {
+                            key: label_def.key.clone(),
+                            name: label_def.name.clone(),
+                        },
+                        expanded: !is_collapsed,
+                        id: group_id,
+                    });
+
+                    if !is_collapsed {
+                        for task in &matching {
+                            matched_ids.insert(task.id.clone());
+                            flatten_task(task, 1, &self.collapsed, &mut items);
+                        }
+                    }
+                }
+            }
+
+            // "Other" group for unmatched tasks
+            let other: Vec<&Task> = tasks.iter()
+                .filter(|t| !matched_ids.contains(&t.id))
+                .copied()
+                .collect();
+
+            if !other.is_empty() {
+                let group_id = "label:_other".to_string();
+                let is_collapsed = self.collapsed.contains(&group_id);
+
+                items.push(TreeItem {
+                    depth: 0,
+                    kind: TreeItemKind::LabelGroup {
+                        key: "_other".to_string(),
+                        name: "Other".to_string(),
+                    },
+                    expanded: !is_collapsed,
+                    id: group_id,
+                });
+
+                if !is_collapsed {
+                    for task in &other {
+                        flatten_task(task, 1, &self.collapsed, &mut items);
+                    }
+                }
             }
         }
 
-        // Apply text filter
-        if !self.filter_text.is_empty() {
-            projects = data::filter_by_text(&projects, &self.filter_text);
-        }
-
-        self.filtered_projects = projects;
-
-        let mut items = Vec::new();
-        for project in &self.filtered_projects {
-            flatten_project(project, 0, &self.collapsed, &mut items);
-        }
         self.tree_items = items;
-
-        // Clamp selection
         if !self.tree_items.is_empty() && self.selected >= self.tree_items.len() {
             self.selected = self.tree_items.len() - 1;
         }
@@ -161,15 +236,15 @@ impl AppState {
         }
     }
 
-    pub fn cycle_label(&mut self) {
-        let total = self.all_labels.len() + 1; // +1 for ALL
-        self.selected_label = (self.selected_label + 1) % total;
+    pub fn cycle_project(&mut self) {
+        let total = self.projects.len() + 1; // +1 for ALL
+        self.selected_project = (self.selected_project + 1) % total;
         self.rebuild_tree();
     }
 
-    pub fn cycle_label_backward(&mut self) {
-        let total = self.all_labels.len() + 1;
-        self.selected_label = (self.selected_label + total - 1) % total;
+    pub fn cycle_project_backward(&mut self) {
+        let total = self.projects.len() + 1;
+        self.selected_project = (self.selected_project + total - 1) % total;
         self.rebuild_tree();
     }
 
@@ -211,6 +286,21 @@ impl AppState {
     pub fn current_detail_id(&self) -> Option<&str> {
         self.nav_stack.last().map(|s| s.as_str())
     }
+}
+
+fn collect_all_tasks(project: &Project) -> Vec<Task> {
+    let mut tasks = Vec::new();
+    fn collect(tasks_list: &[Task], out: &mut Vec<Task>) {
+        for t in tasks_list {
+            out.push(t.clone());
+            collect(&t.children, out);
+        }
+    }
+    collect(&project.tasks, &mut tasks);
+    for child in &project.children {
+        tasks.extend(collect_all_tasks(child));
+    }
+    tasks
 }
 
 fn flatten_project(
@@ -285,7 +375,7 @@ pub fn render(frame: &mut Frame, state: &AppState) -> u16 {
             .split(area);
 
             render_header(frame, chunks[0], state);
-            render_label_tabs(frame, chunks[1], state);
+            render_project_tabs(frame, chunks[1], state);
             render_metrics(frame, chunks[2], state);
 
             if ip_items.is_empty() {
@@ -404,11 +494,11 @@ fn render_header(frame: &mut Frame, area: Rect, state: &AppState) {
     );
 }
 
-fn render_label_tabs(frame: &mut Frame, area: Rect, state: &AppState) {
+fn render_project_tabs(frame: &mut Frame, area: Rect, state: &AppState) {
     let mut spans = vec![Span::raw(" ")];
 
     // ALL tab
-    let all_style = if state.selected_label == 0 {
+    let all_style = if state.selected_project == 0 {
         Style::default()
             .fg(theme::BASE)
             .bg(theme::MAUVE)
@@ -419,8 +509,8 @@ fn render_label_tabs(frame: &mut Frame, area: Rect, state: &AppState) {
     spans.push(Span::styled(" ALL ", all_style));
     spans.push(Span::raw(" "));
 
-    for (i, label) in state.all_labels.iter().enumerate() {
-        let style = if state.selected_label == i + 1 {
+    for (i, project) in state.projects.iter().enumerate() {
+        let style = if state.selected_project == i + 1 {
             Style::default()
                 .fg(theme::BASE)
                 .bg(theme::MAUVE)
@@ -428,7 +518,7 @@ fn render_label_tabs(frame: &mut Frame, area: Rect, state: &AppState) {
         } else {
             Style::default().fg(theme::SUBTEXT0).bg(theme::SURFACE0)
         };
-        spans.push(Span::styled(format!(" {} ", label.to_uppercase()), style));
+        spans.push(Span::styled(format!(" {} ", project.name), style));
         spans.push(Span::raw(" "));
     }
 
@@ -538,11 +628,11 @@ fn render_tree(frame: &mut Frame, area: Rect, state: &AppState) {
                 spans.push(Span::styled(project.name.clone(), name_style));
 
                 // Labels
-                if !project.labels.is_empty() {
+                if !project.label_defs.is_empty() {
                     let label_str = project
-                        .labels
+                        .label_defs
                         .iter()
-                        .map(|l| l.as_str())
+                        .map(|l| l.name.as_str())
                         .collect::<Vec<_>>()
                         .join(", ");
                     spans.push(Span::styled(
@@ -550,6 +640,21 @@ fn render_tree(frame: &mut Frame, area: Rect, state: &AppState) {
                         Style::default().fg(theme::OVERLAY0),
                     ));
                 }
+            }
+            TreeItemKind::LabelGroup { name, .. } => {
+                let arrow = if item.expanded { "▼" } else { "▶" };
+                spans.push(Span::styled(
+                    format!("{} ", arrow),
+                    Style::default().fg(theme::SAPPHIRE),
+                ));
+                let name_style = if is_selected {
+                    Style::default()
+                        .fg(theme::TEXT)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(theme::TEXT)
+                };
+                spans.push(Span::styled(name.clone(), name_style));
             }
             TreeItemKind::Task(task) => {
                 // For epics, show collapse indicator
@@ -628,7 +733,7 @@ fn render_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let help_text = if state.view_mode == ViewMode::Filter {
         format!("  /{}█  (Enter to apply, Esc to cancel)", state.filter_text)
     } else {
-        "  j/k:nav  Enter:expand  Tab/S-Tab:labels  /:filter  1-4:status  r:refresh  q:quit".to_string()
+        "  j/k:nav  Enter:expand  Tab/S-Tab:projects  /:filter  1-4:status  r:refresh  q:quit".to_string()
     };
 
     frame.render_widget(

@@ -9,6 +9,12 @@ pub struct ProjectTree {
 }
 
 #[derive(Deserialize, Clone, Debug)]
+pub struct LabelDef {
+    pub key: String,
+    pub name: String,
+}
+
+#[derive(Deserialize, Clone, Debug)]
 pub struct ProjectConfig {
     pub id: String,
     pub name: String,
@@ -19,7 +25,7 @@ pub struct ProjectConfig {
     #[serde(default)]
     pub group_label: String, // unique key for task matching
     #[serde(default)]
-    pub labels: Vec<String>,
+    pub labels: Vec<LabelDef>,
     #[serde(default)]
     pub children: Vec<ProjectConfig>,
 }
@@ -28,9 +34,9 @@ pub struct ProjectConfig {
 pub struct Project {
     pub id: String,
     pub name: String,
-    pub labels: Vec<String>,
     #[allow(dead_code)]
-    pub prefix: String,
+    pub group_label: String,
+    pub label_defs: Vec<LabelDef>,
     pub tasks: Vec<Task>,
     pub children: Vec<Project>,
 }
@@ -199,8 +205,8 @@ pub fn group_tasks(tree: &ProjectTree, tasks: &[Task]) -> Vec<Project> {
         projects.push(Project {
             id: "uncategorized".to_string(),
             name: "Uncategorized".to_string(),
-            labels: vec![],
-            prefix: "".to_string(),
+            group_label: String::new(),
+            label_defs: vec![],
             tasks: uncategorized,
             children: vec![],
         });
@@ -292,8 +298,8 @@ pub fn group_tasks_by_label(tree: &ProjectTree, tasks: &[Task]) -> Vec<Project> 
         projects.push(Project {
             id: "uncategorized".to_string(),
             name: "Uncategorized".to_string(),
-            labels: vec![],
-            prefix: "".to_string(),
+            group_label: String::new(),
+            label_defs: vec![],
             tasks: uncategorized,
             children: vec![],
         });
@@ -329,11 +335,22 @@ fn build_projects(
             let key = config.id.clone();
             let tasks = task_map.get(&key).cloned().unwrap_or_default();
             let children = build_projects_with_path(&config.children, task_map, &[config.id.clone()]);
+            // Flatten child label_defs into parent, dedup by key (parent order first)
+            let mut label_defs = config.labels.clone();
+            let mut seen_keys: std::collections::HashSet<String> =
+                label_defs.iter().map(|l| l.key.clone()).collect();
+            for child in &children {
+                for ld in &child.label_defs {
+                    if seen_keys.insert(ld.key.clone()) {
+                        label_defs.push(ld.clone());
+                    }
+                }
+            }
             Project {
                 id: config.id.clone(),
                 name: config.name.clone(),
-                labels: config.labels.clone(),
-                prefix: config.prefix.clone(),
+                group_label: config.group_label.clone(),
+                label_defs,
                 tasks,
                 children,
             }
@@ -354,11 +371,22 @@ fn build_projects_with_path(
             let key = path.join("/");
             let tasks = task_map.get(&key).cloned().unwrap_or_default();
             let children = build_projects_with_path(&config.children, task_map, &path);
+            // Flatten child label_defs into parent, dedup by key (parent order first)
+            let mut label_defs = config.labels.clone();
+            let mut seen_keys: std::collections::HashSet<String> =
+                label_defs.iter().map(|l| l.key.clone()).collect();
+            for child in &children {
+                for ld in &child.label_defs {
+                    if seen_keys.insert(ld.key.clone()) {
+                        label_defs.push(ld.clone());
+                    }
+                }
+            }
             Project {
                 id: config.id.clone(),
                 name: config.name.clone(),
-                labels: config.labels.clone(),
-                prefix: config.prefix.clone(),
+                group_label: config.group_label.clone(),
+                label_defs,
                 tasks,
                 children,
             }
@@ -415,6 +443,7 @@ pub fn total_projects(projects: &[Project]) -> usize {
 }
 
 /// Collect all unique labels from projects.
+#[allow(dead_code)]
 pub fn collect_labels(projects: &[Project]) -> Vec<String> {
     let mut labels: Vec<String> = Vec::new();
     collect_labels_recursive(projects, &mut labels);
@@ -423,11 +452,12 @@ pub fn collect_labels(projects: &[Project]) -> Vec<String> {
     labels
 }
 
+#[allow(dead_code)]
 fn collect_labels_recursive(projects: &[Project], labels: &mut Vec<String>) {
     for project in projects {
-        for label in &project.labels {
-            if !labels.contains(label) {
-                labels.push(label.clone());
+        for ld in &project.label_defs {
+            if !labels.contains(&ld.key) {
+                labels.push(ld.key.clone());
             }
         }
         collect_labels_recursive(&project.children, labels);
@@ -435,11 +465,12 @@ fn collect_labels_recursive(projects: &[Project], labels: &mut Vec<String>) {
 }
 
 /// Filter projects by label. Returns only projects (and their children) that match.
+#[allow(dead_code)]
 pub fn filter_by_label(projects: &[Project], label: &str) -> Vec<Project> {
     projects
         .iter()
         .filter_map(|p| {
-            if p.labels.iter().any(|l| l == label) {
+            if p.label_defs.iter().any(|l| l.key == label) {
                 Some(p.clone())
             } else {
                 let children = filter_by_label(&p.children, label);
@@ -768,5 +799,31 @@ mod tests {
         let dupes = validate_group_labels(&tree);
         assert_eq!(dupes.len(), 1);
         assert_eq!(dupes[0], "shared-label");
+    }
+
+    #[test]
+    fn test_label_defs_flattened_from_children() {
+        let mut parent = project_config("parent", "Parent", "parent-label");
+        parent.labels = vec![
+            LabelDef { key: "p1".to_string(), name: "Parent Label".to_string() },
+        ];
+        let mut child = project_config("child", "Child", "child-label");
+        child.labels = vec![
+            LabelDef { key: "c1".to_string(), name: "Child Label".to_string() },
+            LabelDef { key: "p1".to_string(), name: "Duplicate".to_string() }, // should be deduped
+        ];
+        parent.children = vec![child];
+
+        let tree = ProjectTree { projects: vec![parent] };
+        let projects = build_projects(&tree.projects, &HashMap::new());
+
+        assert_eq!(projects.len(), 1);
+        let p = &projects[0];
+        // Parent should have p1 (its own) + c1 (from child), but NOT duplicate p1
+        assert_eq!(p.label_defs.len(), 2);
+        assert_eq!(p.label_defs[0].key, "p1");
+        assert_eq!(p.label_defs[0].name, "Parent Label"); // parent's version wins
+        assert_eq!(p.label_defs[1].key, "c1");
+        assert_eq!(p.label_defs[1].name, "Child Label");
     }
 }

@@ -63,16 +63,6 @@ fn main() -> Result<()> {
 
     // Initialize app state
     let mut state = AppState::new();
-    state.all_labels = data::collect_labels(&vec![]);
-
-    // Apply initial label filter from CLI
-    if let Some(label) = &cli.label {
-        // Find the label index
-        let labels = data::collect_labels(&vec![]);
-        if let Some(idx) = labels.iter().position(|l| l == label) {
-            state.selected_label = idx + 1;
-        }
-    }
 
     // Initial data load
     refresh_data(&project_tree, &mut state, cli.project.as_deref());
@@ -198,9 +188,9 @@ fn handle_list_key(
             }
         }
 
-        // Label cycling
-        KeyCode::Tab => state.cycle_label(),
-        KeyCode::BackTab => state.cycle_label_backward(),
+        // Project cycling
+        KeyCode::Tab => state.cycle_project(),
+        KeyCode::BackTab => state.cycle_project_backward(),
 
         // Text filter
         KeyCode::Char('/') => {
@@ -268,7 +258,6 @@ fn refresh_data(
             }
 
             state.projects = projects;
-            state.all_labels = data::collect_labels(&state.projects);
             state.rebuild_tree();
         }
         Err(e) => {
