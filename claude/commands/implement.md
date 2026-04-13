@@ -117,15 +117,11 @@ If any check fails, fix it before reporting.
 
 ### 7. Archive consumed design
 
-If the design document lives in `$COCKPIT_DIR/state/designs/`, move it to `finished/`:
+If the design document lives in `$COCKPIT_DIR/state/designs/`, archive it:
 ```bash
-mkdir -p "$COCKPIT_DIR/state/designs/finished"
-mv "$COCKPIT_DIR/state/designs/<design-file>.md" "$COCKPIT_DIR/state/designs/finished/"
-git -C "$COCKPIT_DIR" add -A state/designs/
-git -C "$COCKPIT_DIR" commit -m "finished: <design-slug>"
-git -C "$COCKPIT_DIR" push
+~/.claude/scripts/cockpit-archive.sh designs <design-file>.md "finished: <design-slug>"
 ```
-If `$COCKPIT_DIR` is unset, the design wasn't from the cockpit, or any git command fails, skip this step.
+If the design wasn't from the cockpit, skip this step.
 
 ### 8. Close tasks and report
 
