@@ -11,8 +11,7 @@
     "allow": [
       "Bash(bd *)",
       "Bash(~/.claude/scripts/*)",
-      "Bash(python3 ~/.claude/scripts/*)",
-      "Bash(*/.claude/scripts/latest-summary.sh*)"
+      "Bash(python3 ~/.claude/scripts/*)"
     ]
   },
   "env": {

@@ -46,12 +46,12 @@ Skip gracefully if:
 Find and read the most recent daily summary:
 
 ```bash
-LATEST=$(~/.claude/scripts/latest-summary.sh)
+~/.claude/scripts/latest-summary.sh
 ```
 
-If a file exists, read it with the Read tool. This contains PRs, action items, stack status, and review activity.
+If the script outputs a file path, read that file with the Read tool. This contains PRs, action items, stack status, and review activity.
 
-If no file exists or `$COCKPIT_DIR` is unset, skip this step.
+If no output or `$COCKPIT_DIR` is unset, skip this step.
 
 ### 5. Output status
 
