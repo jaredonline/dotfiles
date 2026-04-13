@@ -14,7 +14,10 @@ pub struct ProjectConfig {
     pub name: String,
     #[allow(dead_code)]
     pub path: String,
-    pub prefix: String,
+    #[serde(default)]
+    pub prefix: String, // deprecated, retained for compat
+    #[serde(default)]
+    pub group_label: String, // unique key for task matching
     #[serde(default)]
     pub labels: Vec<String>,
     #[serde(default)]
@@ -163,6 +166,7 @@ pub fn build_task_tree(flat_tasks: Vec<Task>) -> Vec<Task> {
 }
 
 /// Group tasks into projects based on prefix matching.
+#[allow(dead_code)]
 pub fn group_tasks(tree: &ProjectTree, tasks: &[Task]) -> Vec<Project> {
     // Build a flat list of all prefixes (including children) sorted by length desc
     // so more specific prefixes match first.
@@ -216,6 +220,101 @@ fn collect_prefixes(
         path.push(config.id.clone());
         out.push((config.prefix.clone(), path.clone()));
         collect_prefixes(&config.children, &path, out);
+    }
+}
+
+/// Validates that all group_labels in the project tree are unique.
+/// Returns Vec of duplicate labels found (empty = valid).
+pub fn validate_group_labels(tree: &ProjectTree) -> Vec<String> {
+    let mut seen: HashMap<String, usize> = HashMap::new();
+    collect_group_labels(&tree.projects, &mut seen);
+    seen.into_iter()
+        .filter(|(label, count)| !label.is_empty() && *count > 1)
+        .map(|(label, _)| label)
+        .collect()
+}
+
+fn collect_group_labels(configs: &[ProjectConfig], seen: &mut HashMap<String, usize>) {
+    for config in configs {
+        if !config.group_label.is_empty() {
+            *seen.entry(config.group_label.clone()).or_insert(0) += 1;
+        }
+        collect_group_labels(&config.children, seen);
+    }
+}
+
+/// Groups tasks into projects by matching task labels against project group_labels.
+///
+/// Algorithm:
+/// 1. Collect all (group_label -> project_path) pairs depth-first from the tree
+/// 2. For each task:
+///    a. Find which group_labels appear in task.labels
+///    b. If exactly one -> assign to that project
+///    c. If zero -> assign to "Uncategorized"
+///    d. If multiple -> warn to stderr, assign to first match in tree order
+/// 3. Return Vec<Project> with tasks assigned
+pub fn group_tasks_by_label(tree: &ProjectTree, tasks: &[Task]) -> Vec<Project> {
+    // Collect all (group_label -> project_path) pairs in tree order (depth-first)
+    let mut label_map: Vec<(String, Vec<String>)> = Vec::new();
+    collect_group_label_paths(&tree.projects, &[], &mut label_map);
+
+    // Assign tasks to projects by label matching
+    let mut project_tasks: HashMap<String, Vec<Task>> = HashMap::new();
+    let mut uncategorized: Vec<Task> = Vec::new();
+
+    for task in tasks {
+        let matches: Vec<&(String, Vec<String>)> = label_map
+            .iter()
+            .filter(|(gl, _)| !gl.is_empty() && task.labels.iter().any(|tl| tl == gl))
+            .collect();
+
+        match matches.len() {
+            0 => uncategorized.push(task.clone()),
+            1 => {
+                let key = matches[0].1.join("/");
+                project_tasks.entry(key).or_default().push(task.clone());
+            }
+            _ => {
+                eprintln!(
+                    "Warning: task {} matches multiple group_labels: {:?}; assigning to first match",
+                    task.id,
+                    matches.iter().map(|(gl, _)| gl.as_str()).collect::<Vec<_>>()
+                );
+                let key = matches[0].1.join("/");
+                project_tasks.entry(key).or_default().push(task.clone());
+            }
+        }
+    }
+
+    let mut projects = build_projects(&tree.projects, &project_tasks);
+
+    if !uncategorized.is_empty() {
+        projects.push(Project {
+            id: "uncategorized".to_string(),
+            name: "Uncategorized".to_string(),
+            labels: vec![],
+            prefix: "".to_string(),
+            tasks: uncategorized,
+            children: vec![],
+        });
+    }
+
+    projects
+}
+
+/// Collect all (group_label, path) pairs depth-first from the tree.
+fn collect_group_label_paths(
+    configs: &[ProjectConfig],
+    parent_path: &[String],
+    out: &mut Vec<(String, Vec<String>)>,
+) {
+    for config in configs {
+        let mut path = parent_path.to_vec();
+        path.push(config.id.clone());
+        if !config.group_label.is_empty() {
+            out.push((config.group_label.clone(), path.clone()));
+        }
+        collect_group_label_paths(&config.children, &path, out);
     }
 }
 
@@ -429,6 +528,35 @@ mod tests {
         }
     }
 
+    fn task_with_labels(id: &str, title: &str, labels: Vec<&str>) -> Task {
+        Task {
+            id: id.to_string(),
+            title: title.to_string(),
+            status: "open".to_string(),
+            task_type: "task".to_string(),
+            priority: 1,
+            assignee: String::new(),
+            parent: String::new(),
+            dependencies: vec![],
+            labels: labels.into_iter().map(|l| l.to_string()).collect(),
+            updated_at: String::new(),
+            description: String::new(),
+            children: vec![],
+        }
+    }
+
+    fn project_config(id: &str, name: &str, group_label: &str) -> ProjectConfig {
+        ProjectConfig {
+            id: id.to_string(),
+            name: name.to_string(),
+            path: String::new(),
+            prefix: String::new(),
+            group_label: group_label.to_string(),
+            labels: vec![],
+            children: vec![],
+        }
+    }
+
     fn count_all(tasks: &[Task]) -> usize {
         tasks.iter().map(|t| 1 + count_all(&t.children)).sum()
     }
@@ -558,5 +686,87 @@ mod tests {
         assert_eq!(epic_a.children.len(), 1, "parent field should win");
         let epic_b = find_task(&tree, "epic-b").unwrap();
         assert_eq!(epic_b.children.len(), 0);
+    }
+
+    #[test]
+    fn test_group_by_label_basic() {
+        let tree = ProjectTree {
+            projects: vec![
+                project_config("infra", "Infrastructure", "infra"),
+                project_config("frontend", "Frontend", "frontend"),
+            ],
+        };
+        let tasks = vec![
+            task_with_labels("t1", "Fix server", vec!["infra"]),
+            task_with_labels("t2", "Update CSS", vec!["frontend"]),
+            task_with_labels("t3", "Add logging", vec!["infra"]),
+        ];
+        let projects = group_tasks_by_label(&tree, &tasks);
+        // Should have 2 projects (no uncategorized)
+        assert_eq!(projects.len(), 2);
+        let infra = projects.iter().find(|p| p.id == "infra").unwrap();
+        assert_eq!(infra.tasks.len(), 2);
+        let frontend = projects.iter().find(|p| p.id == "frontend").unwrap();
+        assert_eq!(frontend.tasks.len(), 1);
+    }
+
+    #[test]
+    fn test_group_by_label_uncategorized() {
+        let tree = ProjectTree {
+            projects: vec![
+                project_config("infra", "Infrastructure", "infra"),
+            ],
+        };
+        let tasks = vec![
+            task_with_labels("t1", "Fix server", vec!["infra"]),
+            task_with_labels("t2", "Random task", vec!["unknown-label"]),
+        ];
+        let projects = group_tasks_by_label(&tree, &tasks);
+        assert_eq!(projects.len(), 2);
+        let uncat = projects.iter().find(|p| p.id == "uncategorized").unwrap();
+        assert_eq!(uncat.tasks.len(), 1);
+        assert_eq!(uncat.tasks[0].id, "t2");
+    }
+
+    #[test]
+    fn test_group_by_label_no_labels() {
+        let tree = ProjectTree {
+            projects: vec![
+                project_config("infra", "Infrastructure", "infra"),
+            ],
+        };
+        let tasks = vec![
+            task_with_labels("t1", "No labels task", vec![]),
+        ];
+        let projects = group_tasks_by_label(&tree, &tasks);
+        assert_eq!(projects.len(), 2); // infra (empty) + uncategorized
+        let uncat = projects.iter().find(|p| p.id == "uncategorized").unwrap();
+        assert_eq!(uncat.tasks.len(), 1);
+        assert_eq!(uncat.tasks[0].id, "t1");
+    }
+
+    #[test]
+    fn test_validate_group_labels_unique() {
+        let tree = ProjectTree {
+            projects: vec![
+                project_config("a", "A", "label-a"),
+                project_config("b", "B", "label-b"),
+            ],
+        };
+        let dupes = validate_group_labels(&tree);
+        assert!(dupes.is_empty());
+    }
+
+    #[test]
+    fn test_validate_group_labels_duplicate() {
+        let tree = ProjectTree {
+            projects: vec![
+                project_config("a", "A", "shared-label"),
+                project_config("b", "B", "shared-label"),
+            ],
+        };
+        let dupes = validate_group_labels(&tree);
+        assert_eq!(dupes.len(), 1);
+        assert_eq!(dupes[0], "shared-label");
     }
 }

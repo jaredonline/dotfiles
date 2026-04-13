@@ -52,6 +52,15 @@ fn main() -> Result<()> {
     // Load project tree config
     let project_tree = data::load_project_tree(&cli.config)?;
 
+    // Validate group_labels are unique
+    let duplicate_labels = data::validate_group_labels(&project_tree);
+    if !duplicate_labels.is_empty() {
+        eprintln!(
+            "Warning: duplicate group_labels found in project tree: {:?}",
+            duplicate_labels
+        );
+    }
+
     // Initialize app state
     let mut state = AppState::new();
     state.all_labels = data::collect_labels(&vec![]);
@@ -251,7 +260,7 @@ fn refresh_data(
     match data::fetch_tasks() {
         Ok(tasks) => {
             state.bd_error = None;
-            let mut projects = data::group_tasks(project_tree, &tasks);
+            let mut projects = data::group_tasks_by_label(project_tree, &tasks);
 
             // Apply project filter from CLI
             if let Some(proj_id) = project_filter {
