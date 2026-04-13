@@ -108,18 +108,18 @@ Before writing the Tracking section, run `bd close <task-id>`.
 Write the design document to the cockpit state directory:
 1. If `$COCKPIT_DIR` is unset or empty, stop: "COCKPIT_DIR is not set. Set it before running /design."
 2. `mkdir -p "$COCKPIT_DIR/state/designs"` and write the document to `$COCKPIT_DIR/state/designs/design-<slug>.md` where `<slug>` is a kebab-case version of the feature/system name (max 50 chars).
-3. **Archive consumed exploration.** If this design was informed by an exploration document in `$COCKPIT_DIR/state/explorations/`, archive it:
+3. **Commit the new design doc:**
    ```bash
-   ~/.claude/scripts/cockpit-archive.sh explorations <exploration-file>.md "design: <slug>"
-   ```
-   This also commits and pushes the new design doc (git add -A covers the whole state subdir). If no exploration was consumed, skip this step.
-4. **Commit new design (if no exploration was archived).** If step 3 was skipped, commit the design doc:
-   ```bash
-   git -C "$COCKPIT_DIR" add -A state/designs/
+   git -C "$COCKPIT_DIR" add "state/designs/design-<slug>.md"
    git -C "$COCKPIT_DIR" commit -m "design: <slug>"
    git -C "$COCKPIT_DIR" push
    ```
    If any git command fails, warn the user but continue.
+4. **Archive consumed exploration.** If this design was informed by an exploration document in `$COCKPIT_DIR/state/explorations/`, archive it:
+   ```bash
+   ~/.claude/scripts/cockpit-archive.sh explorations <exploration-file>.md "finished: <slug>"
+   ```
+   If no exploration was consumed, skip this step.
 
 Produce a markdown document with these sections:
 

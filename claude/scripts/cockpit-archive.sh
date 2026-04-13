@@ -18,7 +18,7 @@ mkdir -p "$COCKPIT_DIR/state/$subdir/finished"
 mv "$src" "$COCKPIT_DIR/state/$subdir/finished/$filename"
 echo "Archived $filename"
 
-git -C "$COCKPIT_DIR" add -A state/ 2>/dev/null
+git -C "$COCKPIT_DIR" add "state/$subdir/$filename" "state/$subdir/finished/$filename" 2>/dev/null
 git -C "$COCKPIT_DIR" commit -m "$msg" 2>/dev/null || echo "Warning: git commit failed" >&2
 git -C "$COCKPIT_DIR" push 2>/dev/null || echo "Warning: git push failed" >&2
 
