@@ -29,7 +29,9 @@ The more the user front-loads, the less exploration you do and the faster you co
 
 ### 1. Create Beads task
 
-Run `bd create --title="Design: [topic]" --description="[brief description of what is being designed]" --type=task` and store the returned task ID.
+**Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation.
+
+Run `bd create --title="Design: [topic]" --description="[brief description of what is being designed]" --type=task --labels=<resolved-labels>` and store the returned task ID.
 Claim it: `bd update <id> --claim`.
 You will reference the task ID in the ## Tracking section of your final output.
 

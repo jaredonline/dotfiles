@@ -26,7 +26,9 @@ If no design is available, stop and tell the user to run /design first.
 
 ### 1. Create Beads task
 
-Run `bd create --title="Implement: [design name]" --type=task` and store the returned task ID.
+**Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation (including worker tasks and discovered work).
+
+Run `bd create --title="Implement: [design name]" --type=task --labels=<resolved-labels>` and store the returned task ID.
 Claim it: `bd update <id> --claim`.
 
 ### 2. Detect mode
@@ -58,7 +60,7 @@ Parse the design document and extract:
 - **Data schemas** to create/modify (from Data Schemas section)
 - **Dependencies** between tasks (which tasks block others)
 
-Create Beads tasks for each component: `bd create --title="..." --description="..." --type=task` with interface spec, file scope, and acceptance criteria in the description. Wire deps with `bd dep add`.
+Create Beads tasks for each component: `bd create --title="..." --description="..." --type=task --labels=<resolved-labels>` with interface spec, file scope, and acceptance criteria in the description. Wire deps with `bd dep add`.
 
 ### 4. Create shared interfaces
 
@@ -110,7 +112,7 @@ After all workers complete:
 - Run any existing tests (`go test ./...`, `npm test`, `pytest`, etc.)
 - Fix integration issues — these are usually import paths, type mismatches, or missing glue code
 - Collect `## Discovered Work` sections from all worker outputs
-- Create beads tasks for discovered items: `bd create --title="[title]" --description="[description]" --type=task --parent=<epic-id>`
+- Create beads tasks for discovered items: `bd create --title="[title]" --description="[description]" --type=task --parent=<epic-id> --labels=<resolved-labels>`
 - Do not run any git commands (no commits, no branching)
 
 If any check fails, fix it before reporting.

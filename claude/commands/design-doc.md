@@ -24,9 +24,11 @@ If no topic is provided, stop and ask: "What should the design document cover?"
 
 ### 1. Create epic
 
+**Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation (epic, child tasks, discovered work).
+
 Create an epic to track the design doc effort:
 
-bd create --title="Design Doc: [topic]" --description="Human-readable design document for [topic]" --type=epic --priority=2
+bd create --title="Design Doc: [topic]" --description="Human-readable design document for [topic]" --type=epic --priority=2 --labels=<resolved-labels>
 
 Claim it: `bd update <epic-id> --claim`.
 
@@ -57,7 +59,7 @@ Spawn ALL agents in ONE message:
 > Research alternative approaches to [problem]. Look for: existing patterns in this codebase that solve similar problems, industry-standard approaches, and known trade-offs. Return: 3-5 viable approaches with pros/cons for each.
 
 File child tasks for areas needing deeper exploration:
-bd create --title="Explore: [area]" --type=task --parent=<epic-id>
+bd create --title="Explore: [area]" --type=task --parent=<epic-id> --labels=<resolved-labels>
 
 Close each when its exploration completes.
 
@@ -117,7 +119,7 @@ For each reviewer's feedback:
 - **Escalate**: If the concern raises a question you can't answer, add to Open Questions.
 
 File child tasks for work discovered during review:
-bd create --title="[discovered work item]" --type=task --parent=<epic-id>
+bd create --title="[discovered work item]" --type=task --parent=<epic-id> --labels=<resolved-labels>
 
 ### 7. Self-validation
 

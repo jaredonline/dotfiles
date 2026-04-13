@@ -19,7 +19,9 @@ The user provides a design doc path or reference (from `/design` output). If no 
 
 ### 1. Create Beads task
 
-Run `bd create --title="Plan: [design name]" --type=task` and store the returned task ID. Claim it: `bd update <id> --claim`.
+**Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation (epic, child tasks, integration task).
+
+Run `bd create --title="Plan: [design name]" --type=task --labels=<resolved-labels>` and store the returned task ID. Claim it: `bd update <id> --claim`.
 
 ### 2. Parse the design
 
@@ -35,7 +37,8 @@ Read the design doc and extract:
 ```
 bd create --title="Epic: [design name]" --type=epic \
   --description="Implementation of [design name]" \
-  --context="Design doc: [path]"
+  --context="Design doc: [path]" \
+  --labels=<resolved-labels>
 ```
 
 Store the epic ID. All tasks will be children of this epic.
@@ -50,7 +53,8 @@ bd create \
   --description="[interface spec, file scope, acceptance criteria]" \
   --type=task \
   --parent=<epic-id> \
-  --context="Design: [design doc path]"
+  --context="Design: [design doc path]" \
+  --labels=<resolved-labels>
 ```
 
 Each task description MUST include:
@@ -73,7 +77,8 @@ bd create \
   --title="Integration: [design name]" \
   --description="Merge all implementation branches. Run full test suite. Fix integration issues." \
   --type=task \
-  --parent=<epic-id>
+  --parent=<epic-id> \
+  --labels=<resolved-labels>
 ```
 
 This task depends on ALL implementation tasks. Wire deps: `bd dep add <integration-id> <each-task-id>`.

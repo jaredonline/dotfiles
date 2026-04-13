@@ -24,7 +24,9 @@ If no question is provided, stop and ask the user for a question.
 
 ### 1. Create Beads task
 
-Run `bd create --title="Investigate: [question]" --type=task` and store the returned task ID.
+**Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation.
+
+Run `bd create --title="Investigate: [question]" --type=task --labels=<resolved-labels>` and store the returned task ID.
 Claim it: `bd update <id> --claim`.
 
 ### 2. Decompose question
