@@ -4,14 +4,14 @@ You are recovering session context after a /clear, compaction, or new session. Y
 
 ### 1. Reload beads context
 
-Run `bd prime` to restore workflow rules and command reference. Then append persistent memories:
+Run `bd prime` to restore workflow rules and command reference, then load persistent memories:
 
 ```bash
 bd prime
-bd prime --export | sed -n '/^## Persistent Memories/,$p'
+~/.claude/scripts/bd-memories.sh
 ```
 
-The first command outputs the PRIME.md override (custom workflow context). The second extracts the dynamic memories section from the default output and appends it.
+The first command outputs the PRIME.md override (custom workflow context). The second extracts persistent memories from the default output.
 
 If `bd` is not available (command not found), skip to Step 4 and note that beads is unavailable.
 
