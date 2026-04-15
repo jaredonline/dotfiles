@@ -98,6 +98,7 @@ Before presenting the final document, verify:
 
 - [ ] Every section in the output template has content (or an explicit "N/A — [reason]")
 - [ ] Every claim references a specific file and function/line
+- [ ] No inference is presented as established fact — column names, variable names, and patterns are labeled as suggestive, not definitive
 - [ ] Architecture diagram exists and matches the described components
 - [ ] Data flows are end-to-end (entry point → terminal state), not fragments
 - [ ] Integration points list direction (inbound/outbound) and protocol
@@ -111,3 +112,5 @@ If any check fails, go back and fill the gap before presenting.
 - Use mermaid diagrams for architecture and complex flows
 - Keep it factual — document what IS, not what should be
 - If an area is unclear or undocumented, say so explicitly
+- **Distinguish evidence from inference.** A claim backed by code you read is evidence. A claim derived from a column name, variable name, or pattern match is inference. Label inferences explicitly: "the column name suggests…" not "this is…". When the user or a coworker will act on your output (PR comments, Slack replies, Asana updates), only state what you can cite — bad inferences erode trust faster than gaps do.
+- **When answering coworker questions or drafting external communication**, every factual claim must have a source you can point to (file:line, URL, error message). If you can't find one, say "I couldn't verify this" rather than presenting inference as fact.
