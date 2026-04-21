@@ -90,39 +90,66 @@ pub fn load_project_tree(path: &str) -> Result<ProjectTree> {
 
 /// Run `bd list --json --limit 0` and build tree from parent fields.
 pub fn fetch_tasks() -> Result<Vec<Task>> {
-    // Use a child process with a manual timeout via wait_with_output
-    let child = Command::new("bd")
+    use std::io::Read;
+
+    // `bd` usually returns in ~150ms but can take ~5s when the dolt sql-server
+    // cold-starts (stale port → auto-restart). Accommodate that with a generous
+    // timeout, and KILL the child on timeout so slow calls do not pile up.
+    const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
+
+    let mut child = Command::new("bd")
         .args(["list", "--json", "--limit", "0"])
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
         .context("Failed to spawn bd command")?;
 
-    // Wait with a 3-second timeout using a thread
-    let (tx, rx) = std::sync::mpsc::channel();
-    let handle = std::thread::spawn(move || {
-        let result = child.wait_with_output();
-        let _ = tx.send(result);
+    // Drain stdout/stderr on background threads so the child never blocks on
+    // pipe backpressure while we poll try_wait() in the main thread.
+    let mut stdout_pipe = child.stdout.take().expect("piped stdout");
+    let mut stderr_pipe = child.stderr.take().expect("piped stderr");
+    let (tx_out, rx_out) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = stdout_pipe.read_to_end(&mut buf);
+        let _ = tx_out.send(buf);
+    });
+    let (tx_err, rx_err) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = stderr_pipe.read_to_end(&mut buf);
+        let _ = tx_err.send(buf);
     });
 
-    let output = match rx.recv_timeout(std::time::Duration::from_secs(3)) {
-        Ok(result) => result.context("bd command failed")?,
-        Err(_) => {
-            drop(handle);
-            anyhow::bail!("bd command timed out after 3 seconds");
+    let deadline = std::time::Instant::now() + TIMEOUT;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    anyhow::bail!("bd command timed out after {}s", TIMEOUT.as_secs());
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => return Err(anyhow::Error::new(e).context("bd wait failed")),
         }
     };
 
-    if !output.status.success() {
+    let stdout_bytes = rx_out.recv().unwrap_or_default();
+    let stderr_bytes = rx_err.recv().unwrap_or_default();
+
+    if !status.success() {
         anyhow::bail!(
             "bd exited with status {}: {}",
-            output.status,
-            String::from_utf8_lossy(&output.stderr)
+            status,
+            String::from_utf8_lossy(&stderr_bytes)
         );
     }
 
     let flat_tasks: Vec<Task> =
-        serde_json::from_slice(&output.stdout).context("Failed to parse bd JSON output")?;
+        serde_json::from_slice(&stdout_bytes).context("Failed to parse bd JSON output")?;
     Ok(build_task_tree(flat_tasks))
 }
 
