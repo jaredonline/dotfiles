@@ -133,6 +133,17 @@ build_dashboard() {
   fi
 }
 
+build_krust() {
+  if command -v cargo >/dev/null 2>&1; then
+    echo "Building krust..."
+    mkdir -p "$HOME/.local/bin"
+    (cd "$DOTFILES/krust" && cargo build --release) 2>&1 | tail -5
+    cp "$DOTFILES/krust/target/release/krust" "$HOME/.local/bin/krust"
+  else
+    echo "Rust/cargo not installed — skipping krust build"
+  fi
+}
+
 setup_zellij() {
   local zellij_config="$HOME/.config/zellij"
   mkdir -p "$zellij_config/layouts"
@@ -152,7 +163,12 @@ setup_zellij() {
 
 cockpit_init
 build_dashboard
+build_krust
 setup_zellij
+
+# Krust config
+mkdir -p "$HOME/.krust"
+link_file "local/krust/config.toml" "$HOME/.krust/config.toml"
 
 # Source local/private install if present
 [[ -f "$DOTFILES/local/install.sh" ]] && source "$DOTFILES/local/install.sh"
