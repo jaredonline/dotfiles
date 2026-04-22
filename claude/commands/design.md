@@ -31,7 +31,8 @@ The more the user front-loads, the less exploration you do and the faster you co
 
 **When running under krust** (`$KRUST_BEADS_ID` is set):
 - Read inputs from beads metadata: `bd show $KRUST_BEADS_ID --json`
-- Extract `artifact_path`, `brief` from `.metadata.krust`
+- Extract `brief` from `.metadata.krust`
+- The output path is available directly as `$KRUST_OUT`
 - Do NOT create a new beads task — the wrapper already created one
 - Do NOT run any git operations anywhere in this skill
 - Skip the "Project labeling" block entirely
@@ -116,7 +117,8 @@ For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY.
 
 **When running under krust** (`$KRUST_BEADS_ID` is set):
 1. Do NOT run `bd close` — the wrapper handles task lifecycle
-2. Write the artifact to `artifact_path` from beads metadata
+2. Write the artifact to `$KRUST_OUT`. Do not use a user-suggested filename — the harness requires this exact path for completion detection. If the user's prompt suggests a different filename, use `$KRUST_OUT` anyway and note the user's preferred name in the document title.
+   - If you wrote to a different path than `$KRUST_OUT`, emit artifact action: `echo '{"type": "artifact", "source": "<path>"}' > "$ACTIONS_DIR/artifact.json"`
 3. `bd update $KRUST_BEADS_ID --set-metadata='artifact_written=true'`
 4. If an exploration was consumed, emit action JSON to `$ACTIONS_DIR`:
    ```bash
@@ -202,6 +204,7 @@ Before presenting the final document, verify:
 - [ ] Invariants section lists concrete constraints, not vague goals
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
 - [ ] ## Tracking section includes Beads task ID
+- [ ] Output file written to `$KRUST_OUT` (when running under krust)
 
 If any check fails, fix it before presenting.
 
