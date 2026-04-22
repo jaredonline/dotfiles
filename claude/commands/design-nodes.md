@@ -41,32 +41,19 @@ You are designing a node-based scenario graph for a TTRPG. Your job is structura
 
 ## Step 1: Parse Input + Gather Context
 
-**When running under krust** ($KRUST_BEADS_ID is set):
-
-Read inputs from the beads task metadata:
-- Run: `bd show $KRUST_BEADS_ID --json`
-- Extract from `.metadata.krust`:
-  - `brief` — the scenario brief
-  - `campaign_dir` — campaign directory for context
-  - `inputs.situation` — path to situation doc (if any)
-  - `inputs.nodes` — known nodes (if any)
-  - `actions_dir` — directory for action JSON files
-- The output path is available directly as `$KRUST_OUT`
-- Do NOT create a new beads task — the wrapper already created one
-
-**When running standalone** ($KRUST_BEADS_ID is not set):
-
-Parse `$ARGUMENTS` for scenario brief, situation doc, and known nodes.
-
-- If a situation doc is provided, extract factions, NPCs, locations, and tensions as candidate nodes
-- If campaign context is needed and LegendKeeper is available, query via the explore-rpg pattern (parallel LK + system MCP queries)
-- If $KRUST_BEADS_ID is not set, create a beads task to track this work:
+Run:
 
 ```bash
-bd create --title="Nodes: {scenario brief}" --type=task --json
+bd_id=$(krust bd-start task "Nodes: [scenario brief]")
 ```
 
-Claim the task: `bd update <task-id> --claim`
+`krust bd-start` auto-detects mode: under krust (KRUST_BEADS_ID set) it prints the existing task ID; standalone it creates and claims a new task with project-resolved labels. Capture the output into `$bd_id` for subsequent `bd update --notes` calls.
+
+Read inputs:
+- Under krust, the scenario brief, situation doc, known nodes, campaign_dir, and actions_dir live in bd metadata: `bd show $bd_id --json`, then extract from `.metadata.krust` (`brief`, `campaign_dir`, `inputs.situation`, `inputs.nodes`, `actions_dir`). The output path is `$KRUST_OUT`.
+- Standalone, parse `$ARGUMENTS` for scenario brief, situation doc, and known nodes.
+
+If a situation doc is provided, extract factions, NPCs, locations, and tensions as candidate nodes. If campaign context is needed and LegendKeeper is available, query via the explore-rpg pattern.
 
 ---
 
@@ -295,13 +282,6 @@ Run the validation checklist. Remove any empty sections. Output the final docume
 
 **File naming:** When running under krust ($KRUST_OUT is set), write the output file to `$KRUST_OUT`. Do not use a user-suggested filename — the harness requires this exact path for completion detection. If the user's prompt suggests a different filename, use `$KRUST_OUT` anyway and note the user's preferred name in the document title.
 
-After writing the artifact file:
-```bash
-if [ -n "$KRUST_BEADS_ID" ]; then
-  bd update $KRUST_BEADS_ID --set-metadata='artifact_written=true'
-fi
-```
-
 ---
 
 ## Step 8: Lore Check
@@ -310,37 +290,33 @@ Run the `/lore-check` skill against the complete node graph document. It will cr
 
 Append the lore check results as a `## Lore Check` section at the end of the output document (before ## Reachability Audit). If no conflicts found, include the section with "No lore conflicts detected."
 
-After validation and lore check complete:
-```bash
-if [ -n "$KRUST_BEADS_ID" ]; then
-  bd update $KRUST_BEADS_ID --set-metadata='validated=true'
-fi
-```
-
 ---
 
 ## Step 9: Signal Completion
 
-If running under krust, signal completion:
+1. Hand the artifact to krust:
 
-1. If you wrote to `$KRUST_OUT`: no artifact action needed.
-   If you wrote to a different path: emit artifact action:
    ```bash
-   echo '{"type": "artifact", "source": "<path-you-actually-wrote>"}' > "$ACTIONS_DIR/artifact.json"
+   krust artifact nodes <slug> <path-you-wrote-to>
    ```
 
-2. Write index append action (unchanged):
+   `<slug>` is the kebab-case scenario identifier (e.g. `thornwall-disappearances`). Under krust the wrapper uses the slug to canonicalize the artifact path; standalone it writes to `$COCKPIT_DIR/state/nodes/<slug>.md` and commits+pushes directly.
+
+2. Append a line to the campaign INDEX.md via an action (no subcommand yet — this stays in its current form):
+
    ```bash
    echo '{"type": "index_append", "path": "<campaign_dir>/designs/INDEX.md", "line": "- [<slug>](<slug>.md) — <title>"}' > "$ACTIONS_DIR/index-append.json"
    ```
 
-3. Signal completion:
+   `<campaign_dir>` and `<title>` come from bd metadata (read earlier in Step 1).
+
+3. Close the bd task:
+
    ```bash
-   bd update $KRUST_BEADS_ID --set-metadata='actions_emitted=true'
-   bd update $KRUST_BEADS_ID --set-metadata='skill_complete=true'
+   krust bd-finish "$bd_id"
    ```
 
-Where `<campaign_dir>`, `<slug>`, and `<title>` are the values read from beads metadata earlier.
+   Under krust this is a no-op (the wrapper closes the task on approval); standalone it closes the task.
 
 ---
 

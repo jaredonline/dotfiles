@@ -29,21 +29,19 @@ The more the user front-loads, the less exploration you do and the faster you co
 
 ### 1. Create Beads task
 
-**When running under krust** (`$KRUST_BEADS_ID` is set):
-- Read inputs from beads metadata: `bd show $KRUST_BEADS_ID --json`
-- Extract `brief` from `.metadata.krust`
-- The output path is available directly as `$KRUST_OUT`
-- Do NOT create a new beads task — the wrapper already created one
-- Do NOT run any git operations anywhere in this skill
-- Skip the "Project labeling" block entirely
+Run:
 
-**When running standalone** (`$KRUST_BEADS_ID` is not set):
+```bash
+bd_id=$(krust bd-start task "Design: [topic]")
+```
 
-**Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation.
+`krust bd-start` auto-detects mode: under krust (KRUST_BEADS_ID set) it prints the existing task ID, standalone it creates and claims a new task with project-resolved labels. Capture the output into `$bd_id` for subsequent `bd update --notes` calls.
 
-Run `bd create --title="Design: [topic]" --description="[brief description of what is being designed]" --type=task --labels=<resolved-labels>` and store the returned task ID.
-Claim it: `bd update <id> --claim`.
-You will reference the task ID in the ## Tracking section of your final output.
+If running under krust, the task inputs (brief, etc.) live in bd metadata — read via `bd show $bd_id --json` and extract from `.metadata.krust`. Standalone, `[topic]` comes from the user's `$ARGUMENTS`.
+
+Skills do not run git directly — krust owns all git operations.
+
+You will reference `$bd_id` in the ## Tracking section of your final output.
 
 ### 2. Understand the brief
 
@@ -115,38 +113,27 @@ For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY.
 
 ### 7. Output
 
-**When running under krust** (`$KRUST_BEADS_ID` is set):
-1. Do NOT run `bd close` — the wrapper handles task lifecycle
-2. Write the artifact to `$KRUST_OUT`. Do not use a user-suggested filename — the harness requires this exact path for completion detection. If the user's prompt suggests a different filename, use `$KRUST_OUT` anyway and note the user's preferred name in the document title.
-3. Always emit artifact action after writing: `echo '{"type": "artifact", "source": "<path-you-wrote-to>"}' > "$ACTIONS_DIR/artifact.json"` — even if you wrote to `$KRUST_OUT`. The harness uses this to confirm the skill acknowledged where it wrote.
-4. `bd update $KRUST_BEADS_ID --set-metadata='artifact_written=true'`
-5. If an exploration was consumed, emit action JSON to `$ACTIONS_DIR`:
-   ```bash
-   echo '{"type":"archive_exploration","file":"<filename>","reason":"finished: <slug>"}' > "$ACTIONS_DIR/archive.json"
-   ```
-   `bd update $KRUST_BEADS_ID --set-metadata='actions_emitted=true'`
-6. `bd update $KRUST_BEADS_ID --set-metadata='skill_complete=true'`
-7. Skip git commit/push and archive script steps
+Write the design document to a working file. Under krust the wrapper pre-computed `$KRUST_OUT` as a starting path; you may write to `$KRUST_OUT` directly OR to a temp path of your choice — the harness handles relocation via the slug you declare in the next step. Standalone, write anywhere (e.g. `/tmp/design-draft.md`).
 
-**When running standalone** (`$KRUST_BEADS_ID` is not set):
+Then emit the artifact and (optionally) archive a consumed exploration:
 
-Before writing the Tracking section, run `bd close <task-id>`.
+```bash
+# 1. Declare the final slug and hand the artifact to krust.
+krust artifact designs <slug> <path-you-wrote-to>
 
-Write the design document to the cockpit state directory:
-1. If `$COCKPIT_DIR` is unset or empty, stop: "COCKPIT_DIR is not set. Set it before running /design."
-2. `mkdir -p "$COCKPIT_DIR/state/designs"` and write the document to `$COCKPIT_DIR/state/designs/design-<slug>.md` where `<slug>` is a kebab-case version of the feature/system name (max 50 chars).
-3. **Commit the new design doc:**
-   ```bash
-   git -C "$COCKPIT_DIR" add "state/designs/design-<slug>.md"
-   git -C "$COCKPIT_DIR" commit -m "design: <slug>"
-   git -C "$COCKPIT_DIR" push
-   ```
-   If any git command fails, warn the user but continue.
-4. **Archive consumed exploration.** If this design was informed by an exploration document in `$COCKPIT_DIR/state/explorations/`, archive it:
-   ```bash
-   ~/.claude/scripts/cockpit-archive.sh explorations <exploration-file>.md "finished: <slug>"
-   ```
-   If no exploration was consumed, skip this step.
+# 2. If this design was informed by an exploration in $COCKPIT_DIR/state/explorations/, archive it.
+krust archive explorations <exploration-file>.md "finished: <slug>"
+```
+
+`<slug>` is a kebab-case version of the feature/system name (max 50 chars). Under krust, `krust artifact` emits an action JSON that the wrapper consumes to rename/commit the file; standalone, it writes the file to `$COCKPIT_DIR/state/designs/<slug>.md` and commits+pushes directly. Either way — same prose.
+
+Before writing the ## Tracking section, close out the beads task:
+
+```bash
+krust bd-finish "$bd_id"
+```
+
+`krust bd-finish` is a no-op under krust (the wrapper closes the task on approval) and closes the bd task directly when standalone.
 
 Produce a markdown document with these sections:
 
@@ -204,7 +191,7 @@ Before presenting the final document, verify:
 - [ ] Invariants section lists concrete constraints, not vague goals
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
 - [ ] ## Tracking section includes Beads task ID
-- [ ] Output file written to `$KRUST_OUT` (when running under krust)
+- [ ] `krust artifact designs <slug> <path>` was called with the final document path
 
 If any check fails, fix it before presenting.
 
