@@ -29,6 +29,15 @@ The more the user front-loads, the less exploration you do and the faster you co
 
 ### 1. Create Beads task
 
+**When running under krust** (`$KRUST_BEADS_ID` is set):
+- Read inputs from beads metadata: `bd show $KRUST_BEADS_ID --json`
+- Extract `artifact_path`, `brief` from `.metadata.krust`
+- Do NOT create a new beads task — the wrapper already created one
+- Do NOT run any git operations anywhere in this skill
+- Skip the "Project labeling" block entirely
+
+**When running standalone** (`$KRUST_BEADS_ID` is not set):
+
 **Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation.
 
 Run `bd create --title="Design: [topic]" --description="[brief description of what is being designed]" --type=task --labels=<resolved-labels>` and store the returned task ID.
@@ -104,6 +113,20 @@ After the design is written, spawn a simplification reviewer with ONLY the desig
 For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY. Apply accepted simplifications to the design.
 
 ### 7. Output
+
+**When running under krust** (`$KRUST_BEADS_ID` is set):
+1. Do NOT run `bd close` — the wrapper handles task lifecycle
+2. Write the artifact to `artifact_path` from beads metadata
+3. `bd update $KRUST_BEADS_ID --set-metadata='artifact_written=true'`
+4. If an exploration was consumed, emit action JSON to `$ACTIONS_DIR`:
+   ```bash
+   echo '{"type":"archive_exploration","file":"<filename>","reason":"finished: <slug>"}' > "$ACTIONS_DIR/archive.json"
+   ```
+   `bd update $KRUST_BEADS_ID --set-metadata='actions_emitted=true'`
+5. `bd update $KRUST_BEADS_ID --set-metadata='skill_complete=true'`
+6. Skip git commit/push and archive script steps
+
+**When running standalone** (`$KRUST_BEADS_ID` is not set):
 
 Before writing the Tracking section, run `bd close <task-id>`.
 
