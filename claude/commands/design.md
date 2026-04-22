@@ -118,15 +118,15 @@ For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY.
 **When running under krust** (`$KRUST_BEADS_ID` is set):
 1. Do NOT run `bd close` — the wrapper handles task lifecycle
 2. Write the artifact to `$KRUST_OUT`. Do not use a user-suggested filename — the harness requires this exact path for completion detection. If the user's prompt suggests a different filename, use `$KRUST_OUT` anyway and note the user's preferred name in the document title.
-   - If you wrote to a different path than `$KRUST_OUT`, emit artifact action: `echo '{"type": "artifact", "source": "<path>"}' > "$ACTIONS_DIR/artifact.json"`
-3. `bd update $KRUST_BEADS_ID --set-metadata='artifact_written=true'`
-4. If an exploration was consumed, emit action JSON to `$ACTIONS_DIR`:
+3. Always emit artifact action after writing: `echo '{"type": "artifact", "source": "<path-you-wrote-to>"}' > "$ACTIONS_DIR/artifact.json"` — even if you wrote to `$KRUST_OUT`. The harness uses this to confirm the skill acknowledged where it wrote.
+4. `bd update $KRUST_BEADS_ID --set-metadata='artifact_written=true'`
+5. If an exploration was consumed, emit action JSON to `$ACTIONS_DIR`:
    ```bash
    echo '{"type":"archive_exploration","file":"<filename>","reason":"finished: <slug>"}' > "$ACTIONS_DIR/archive.json"
    ```
    `bd update $KRUST_BEADS_ID --set-metadata='actions_emitted=true'`
-5. `bd update $KRUST_BEADS_ID --set-metadata='skill_complete=true'`
-6. Skip git commit/push and archive script steps
+6. `bd update $KRUST_BEADS_ID --set-metadata='skill_complete=true'`
+7. Skip git commit/push and archive script steps
 
 **When running standalone** (`$KRUST_BEADS_ID` is not set):
 
