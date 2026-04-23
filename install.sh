@@ -127,7 +127,7 @@ build_dashboard() {
     echo "Building cockpit-dash..."
     mkdir -p "$HOME/.local/bin"
     (cd "$DOTFILES/cockpit-dash" && cargo build --release) 2>&1 | tail -5
-    cp "$DOTFILES/cockpit-dash/target/release/cockpit-dash" "$HOME/.local/bin/cockpit-dash"
+    install -m 755 "$DOTFILES/cockpit-dash/target/release/cockpit-dash" "$HOME/.local/bin/cockpit-dash"
   else
     echo "Rust/cargo not installed — skipping cockpit-dash build"
   fi
@@ -138,7 +138,7 @@ build_krust() {
     echo "Building krust..."
     mkdir -p "$HOME/.local/bin"
     (cd "$DOTFILES/krust" && cargo build --release) 2>&1 | tail -5
-    cp "$DOTFILES/krust/target/release/krust" "$HOME/.local/bin/krust"
+    install -m 755 "$DOTFILES/krust/target/release/krust" "$HOME/.local/bin/krust"
   else
     echo "Rust/cargo not installed — skipping krust build"
   fi
