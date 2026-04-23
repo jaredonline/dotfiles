@@ -1,0 +1,54 @@
+---
+name: feedback-situation
+description: Apply feedback to a situation design document preserving structural invariants
+user_invocable: false
+---
+
+**When running under krust** ($KRUST_BEADS_ID is set):
+
+Read the artifact path and feedback from beads:
+- Run: `bd show $KRUST_BEADS_ID --json`
+- Extract `artifact_path` from `.metadata.krust.artifact_path`
+- Extract latest feedback from `.notes` (last line)
+
+**When running standalone** ($KRUST_BEADS_ID is not set, fallback):
+
+- Read the file at $KRUST_OUT
+- If $KRUST_FEEDBACK is set and non-empty, use it as the feedback
+
+---
+
+Read the artifact file.
+
+If feedback text is available, apply this feedback.
+Otherwise, the user just edited this file by hand. Review the edits and ensure internal consistency.
+
+Rewrite the file in place.
+
+After applying the changes, verify the following invariants and fix any violations:
+
+1. **Faction completeness**: Every faction has all required fields (identity,
+   area of operation, power level, ideology, methods, goals at 3 timescales,
+   key NPCs table, clock).
+2. **NPC goal distinction**: Every NPC's personal goal is distinct from their
+   faction's goals.
+3. **Faction relationship map (Mermaid)**: Matches the actual factions and their
+   relationships in the document.
+4. **PC goal intersections table**: Covers all factions (if PC goals were
+   provided).
+5. **Default timeline**: Includes at least one entry per faction.
+6. **Clock validity**: Every faction has a clock with a named goal, segment
+   count (4/6/8), and fill condition.
+7. **Three-faction coverage**: At least one faction each in good, bad, and ugly
+   roles.
+8. **Frontmatter consistency**: Preserve `beads_id` field.
+
+Do NOT skip these checks. The structural integrity of the situation document depends on them.
+
+After rewriting the file, signal completion:
+```bash
+if [ -n "$KRUST_BEADS_ID" ]; then
+  bd update $KRUST_BEADS_ID --set-metadata='artifact_written=true'
+  bd update $KRUST_BEADS_ID --set-metadata='skill_complete=true'
+fi
+```
