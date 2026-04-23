@@ -26,10 +26,11 @@ If no design is available, stop and tell the user to run /design first.
 
 ### 1. Create Beads task
 
-**Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation (including worker tasks and discovered work).
+```bash
+bd_id=$(krust bd-start task "Implement: [design name]")
+```
 
-Run `bd create --title="Implement: [design name]" --type=task --labels=<resolved-labels>` and store the returned task ID.
-Claim it: `bd update <id> --claim`.
+Under krust, `krust bd-start` prints `$KRUST_BEADS_ID` (no-op). Standalone, it creates + claims a new task.
 
 ### 2. Detect mode
 
@@ -41,6 +42,13 @@ bd list --parent=<epic-matching-design> --status=open
 
 - **If results exist** → Mode A (task graph exists, proceed to Step 3A)
 - **If empty** → Mode B (no task graph, proceed to Step 3B)
+
+If `$KRUST_BEADS_ID` is set, read the epic ID from beads metadata:
+```bash
+epic_id=$(bd show "$bd_id" --json | jq -r '.metadata.krust.inputs.epic_id')
+```
+
+Standalone: discover the epic from the design reference or `$ARGUMENTS` (existing behavior).
 
 ### 3A. Mode A — Read existing task graph
 
@@ -59,6 +67,9 @@ Parse the design document and extract:
 - **Interfaces** to implement (from Interfaces section)
 - **Data schemas** to create/modify (from Data Schemas section)
 - **Dependencies** between tasks (which tasks block others)
+
+If `$KRUST_BEADS_ID` is set and `bd list --parent=<epic_id> --status=open` returns no results, report an error:
+> "Epic <id> has no open tasks. Run /plan first, or check if tasks are already closed."
 
 Create Beads tasks for each component: `bd create --title="..." --description="..." --type=task --labels=<resolved-labels>` with interface spec, file scope, and acceptance criteria in the description. Wire deps with `bd dep add`.
 
@@ -113,7 +124,7 @@ After all workers complete:
 - Fix integration issues — these are usually import paths, type mismatches, or missing glue code
 - Collect `## Discovered Work` sections from all worker outputs
 - Create beads tasks for discovered items: `bd create --title="[title]" --description="[description]" --type=task --parent=<epic-id> --labels=<resolved-labels>`
-- Do not run any git commands (no commits, no branching)
+- Do not run any git commands — krust owns git operations
 
 If any check fails, fix it before reporting.
 
@@ -121,42 +132,57 @@ If any check fails, fix it before reporting.
 
 If the design document lives in `$COCKPIT_DIR/state/designs/`, archive it:
 ```bash
-~/.claude/scripts/cockpit-archive.sh designs <design-file>.md "finished: <design-slug>"
+krust archive designs <design-file>.md "implemented: <slug>"
 ```
 If the design wasn't from the cockpit, skip this step.
 
 ### 8. Close tasks and report
 
 For each completed task: `bd close <task-id>`
-Close the orchestration task: `bd close <orchestration-task-id>`
 
-Report to the user:
+Write the Implementation Report:
 
 ```markdown
-# Implementation Report
+---
+beads_id: <orchestration-task-id>
+---
+
+# Implementation Report: [Design Name]
 
 ## Tasks Completed
-[list task IDs and titles]
+- <task-id>: <title> — closed
 
 ## Files Created/Modified
-[list files]
+[list files with brief description]
 
 ## Test Results
 [pass/fail summary]
 
 ## Deviations & Discovered Work
-[any differences from the design, with rationale]
+[differences from design, with rationale]
 [newly created task IDs for discovered work, or "None"]
 
 ## Tracking
-- Beads: <orchestration-task-id> — closed
-- [list all implementation task IDs and status]
+- Orchestration: <orchestration-task-id> — closed
+- Epic: <epic-id>
 ```
+
+Use the Write tool to save the report as a file at `$KRUST_OUT` (if set) or `/tmp/implement-report-<bd_id>.md`. You MUST write the file to disk — do not just output the report as conversation text.
+
+Then run these commands via Bash:
+
+```bash
+krust artifact implementations <slug> <path-written-to>
+krust archive designs <design-file>.md "implemented"
+krust bd-finish "$bd_id"
+```
+
+`krust artifact` declares the report as an output artifact. `krust bd-finish` closes the orchestration task (no-op under krust — the wrapper closes it on approval).
 
 ## Rules
 
 - **Do not start without a design** — if there's no design document, stop
-- **No git operations in the working repo** — do not commit, branch, stash, merge, or run any git commands in the project repo. The user manages git themselves. Exception: cockpit repo git operations in Step 7 (archiving the design) are allowed.
+- **Skills do not run git directly** — krust owns all git operations. Do not commit, branch, stash, merge, or run any git commands.
 - **No worktrees** — do not use `isolation: "worktree"` on worker agents
 - **Shared interfaces first** — create them before spawning workers to prevent drift
 - **Workers follow the spec exactly** — no freelancing, no extra methods, no bonus abstractions
