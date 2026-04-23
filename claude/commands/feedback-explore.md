@@ -33,6 +33,7 @@ After applying changes, verify these invariants and fix any violations:
 5. **Integration points list direction + protocol**: every inbound/outbound entry names the direction and the protocol.
 6. **Failure modes are concrete**: each entry names what breaks and how the system handles it, not vague risk statements.
 7. **Tracking preserved**: `## Tracking` section still lists the Beads task ID. Do not rewrite the task ID.
+8. **Preserve `## Rounds of Feedback` section**: If a top-level section titled exactly `## Rounds of Feedback` exists at the end of the artifact, preserve it byte-for-byte. Do not edit, reformat, reorder, summarize, move, or remove any content within or after it. Krust will append the new round entry after you return; do not add a round entry yourself.
 
 Do NOT skip these checks — they're the structural contract for exploration docs.
 
