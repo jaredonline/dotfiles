@@ -2,7 +2,7 @@ You are decomposing a design into a Beads task graph. Your goal is to produce a 
 
 ## Input
 
-The user provides a design doc path or reference (from `/design` output). If no design is available, stop and tell the user to run `/design` first.
+If `$KRUST_BEADS_ID` is set, inputs come from beads metadata (see Step 1). Otherwise, the user provides a design doc path or reference (from `/design` output). If no design is available, stop and tell the user to run `/design` first.
 
 ## Agent Strategy
 
@@ -19,6 +19,15 @@ The user provides a design doc path or reference (from `/design` output). If no 
 
 ### 1. Create Beads task
 
+If `$KRUST_BEADS_ID` is set:
+- The tracking task already exists — use `$KRUST_BEADS_ID` as the task ID.
+- Read inputs from beads metadata: `bd show $KRUST_BEADS_ID --json`
+- Extract `design_path` from `.metadata.krust.inputs.design_path`
+- Do NOT create a planning tracking task — krust already created one.
+- Skip project labeling entirely.
+
+If `$KRUST_BEADS_ID` is not set:
+
 **Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation (epic, child tasks, integration task).
 
 Run `bd create --title="Plan: [design name]" --type=task --labels=<resolved-labels>` and store the returned task ID. Claim it: `bd update <id> --claim`.
@@ -34,6 +43,11 @@ Read the design doc and extract:
 
 ### 3. Create the epic
 
+If `$KRUST_BEADS_ID` is set:
+- Do NOT create the epic via bd commands. Design the epic title and description, but defer creation to the `create_task_graph` action emitted in Step 6.
+
+If `$KRUST_BEADS_ID` is not set:
+
 ```
 bd create --title="Epic: [design name]" --type=epic \
   --description="Implementation of [design name]" \
@@ -45,7 +59,11 @@ Store the epic ID. All tasks will be children of this epic.
 
 ### 4. Decompose into claimable tasks
 
-For each component, create a Beads task:
+If `$KRUST_BEADS_ID` is set:
+- Do NOT create tasks via bd commands. Design the full task list with titles, descriptions, and dependency refs, but defer creation to the `create_task_graph` action emitted in Step 6.
+- Assign each task a short ref label (e.g., "A", "B", "C") for use in `depends_on` arrays.
+
+If `$KRUST_BEADS_ID` is not set, for each component, create a Beads task:
 
 ```
 bd create \
@@ -72,6 +90,11 @@ Rules for task decomposition:
 
 ### 5. Create integration task
 
+If `$KRUST_BEADS_ID` is set:
+- Do NOT create the integration task via bd commands. Include it as the final task in the `create_task_graph` action (Step 6) with `depends_on` listing all other task refs.
+
+If `$KRUST_BEADS_ID` is not set:
+
 ```
 bd create \
   --title="Integration: [design name]" \
@@ -84,6 +107,80 @@ bd create \
 This task depends on ALL implementation tasks. Wire deps: `bd dep add <integration-id> <each-task-id>`.
 
 ### 6. Output
+
+If `$KRUST_BEADS_ID` is set:
+
+Write plan summary to `$KRUST_OUT` with YAML frontmatter:
+
+```markdown
+---
+beads_id: <$KRUST_BEADS_ID>
+design: <design-path>
+---
+# Plan: [Design Name]
+
+## Epic
+- Design: [path to design doc]
+
+## Tasks
+| Ref | Title | Depends On | File Scope |
+|-----|-------|-----------|------------|
+| A   | ...   | —         | ...        |
+| B   | ...   | A         | ...        |
+
+## Execution
+- **Solo**: Run `/implement` — it will read this task graph and orchestrate workers
+- **Multi-agent**: Each agent runs `bd ready --parent=<epic-id>`, claims a task, implements it in a worktree
+```
+
+Emit `create_task_graph` action to `$ACTIONS_DIR/task-graph.json`:
+
+```json
+{
+  "type": "create_task_graph",
+  "parent": "<optional-parent-epic-id-from-beads-metadata>",
+  "epic": {
+    "title": "Implement: Feature X",
+    "description": "Epic description with context"
+  },
+  "tasks": [
+    {
+      "ref": "A",
+      "title": "...",
+      "description": "Full self-contained description with interface specs pasted in",
+      "depends_on": []
+    },
+    {
+      "ref": "B",
+      "title": "...",
+      "description": "Full self-contained description with interface specs pasted in",
+      "depends_on": ["A"]
+    }
+  ]
+}
+```
+
+The `tasks` array must be dependency-ordered — every ref in a task's `depends_on` must appear earlier in the array. Task descriptions must be self-contained (specs pasted in, not referenced).
+
+If the design doc came from an exploration or design file, emit archive action to `$ACTIONS_DIR/archive-design.json`:
+
+```json
+{
+  "type": "archive",
+  "kind": "designs",
+  "file": "<design-filename>",
+  "reason": "finished: plans-<slug>"
+}
+```
+
+Mark skill complete: `bd update $KRUST_BEADS_ID --set-metadata='skill_complete=true'`
+
+Do NOT:
+- Run `bd close` on the krust tracking task
+- Run git operations
+- Create beads tasks directly
+
+If `$KRUST_BEADS_ID` is not set:
 
 Close the planning task: `bd close <plan-task-id>`.
 
@@ -117,4 +214,4 @@ Present the plan:
 - **No file scope overlap** — concurrent tasks must not touch the same files
 - **Serialize conflicts via deps** — if overlap is unavoidable, add a dependency
 - **Integration task always last** — depends on all implementation tasks
-- **Close the planning task** — before outputting the ## Tracking section
+- **Close the planning task** — before outputting the ## Tracking section (standalone only; under krust, set `skill_complete` metadata instead)
