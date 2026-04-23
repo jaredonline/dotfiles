@@ -22,6 +22,7 @@ The input format:
 - **PC goals** (optional) — what the player characters are trying to accomplish
 - **Setting context** (optional) — campaign, location, era, system
 - **Existing situation doc** (optional) — output from a prior run, provided for revision
+- **--redesign <path>** (optional) — path to a prior situation doc for revision. When provided, the brief describes what to CHANGE, not the full situation from scratch.
 
 ---
 
@@ -42,6 +43,9 @@ The input format:
 
 - If campaign context is needed and LK is available, query via explore-rpg pattern (parallel MCP queries)
 - If an existing situation doc is provided, parse it as the starting point for revision
+- If `--redesign <path>` is provided, read the file and use it as the starting point
+- Parse the prior doc's factions, NPCs, goals, and timeline as the baseline
+- The brief describes changes to make, not the full situation
 
 Run:
 ```bash

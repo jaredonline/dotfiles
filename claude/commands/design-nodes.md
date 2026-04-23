@@ -21,6 +21,7 @@ You are designing a node-based scenario graph for a TTRPG. Your job is structura
 - **Scenario brief** (required) — what the scenario is about, what the PCs are walking into
 - **Situation doc** (optional) — output from `/design-situation`, provides factions, NPCs, locations, and tensions to draw from
 - **Known nodes** (optional) — specific locations, NPCs, or events the GM wants included as nodes
+- **--redesign <path>** (optional) — path to a prior nodes doc for revision. When provided, the brief describes what to CHANGE, not the full scenario from scratch.
 
 ---
 
@@ -54,6 +55,8 @@ Read inputs:
 - Standalone, parse `$ARGUMENTS` for scenario brief, situation doc, and known nodes.
 
 If a situation doc is provided, extract factions, NPCs, locations, and tensions as candidate nodes. If campaign context is needed and LegendKeeper is available, query via the explore-rpg pattern.
+
+If `--redesign <path>` is provided, read the file at that path and use it as the starting point. Parse the prior doc's nodes, clue network, timeline, and revelation list as the baseline. The brief describes changes to make, not the full scenario.
 
 ---
 

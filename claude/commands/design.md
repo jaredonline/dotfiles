@@ -10,6 +10,8 @@ The user provides a brief. The brief's detail level varies:
 | Medium — knows the shape | Constraints: "batch N+1 selects, keep interface stable" | Focused exploration |
 | High — knows the answer | Full sketch with approach | Validate and formalize |
 
+- **--redesign <path>** (optional) — path to a prior design doc for revision. When provided, the brief describes what to CHANGE.
+
 The more the user front-loads, the less exploration you do and the faster you converge.
 
 ## Agent Strategy
@@ -49,6 +51,8 @@ Parse the user's request for:
 - **Goal**: What problem are we solving?
 - **Constraints**: What must not change? What's out of scope?
 - **Sketch**: Did the user provide an approach? API shapes? Key decisions?
+
+If `--redesign <path>` is provided, read the file at that path and use it as the starting point. Parse the prior doc's architecture, interfaces, decisions, and invariants as the baseline. The brief describes changes to make, not the full design.
 
 ### 3. Spawn exploration team (parallel)
 
