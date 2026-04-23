@@ -47,7 +47,7 @@ Show the unstaged file list to the user and ask: "These files have unstaged chan
 
 **If NOT on main and everything is committed:** proceed directly to Step 2.
 
-**Commit message generation:** When committing in this step, use a short `[area] description` message derived from the changed files. This is a lightweight pass — the full analysis happens in Step 3.
+**Commit message generation:** When committing in this step, delegate to the `/commit-message` skill. Write the current diff (`git diff --cached` if there are staged changes, else `git diff`) to a temp file (e.g., under `$(mktemp -d)`). Spawn `/commit-message` as a sub-agent (Agent tool, `model=opus`); in the sub-agent prompt, instruct it to set `KRUST_COMMIT_DIFF_PATH=<tempfile>` and `KRUST_COMMIT_MSG_STYLE=pr`, read the diff from that path, and return the generated message as its final response. Use the returned message verbatim for the commit. If the sub-agent fails or produces an invalid message, hard-fail and tell the user to retry with an explicit message — do NOT fall back to a static `[area]` string.
 
 ### 2. Check for design document
 
