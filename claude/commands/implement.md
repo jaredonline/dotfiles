@@ -32,6 +32,8 @@ bd_id=$(krust bd-start task "Implement: [design name]")
 
 Under krust, `krust bd-start` prints `$KRUST_BEADS_ID` (no-op). Standalone, it creates + claims a new task.
 
+**CRITICAL**: `$bd_id` is your orchestration task for this entire run. Do NOT create a separate orchestration task via `bd create`. Use `$bd_id` in the implementation report frontmatter and in `krust bd-finish`. The only tasks you create via `bd create` are child implementation tasks under the epic.
+
 ### 2. Detect mode
 
 Check if a task graph already exists (from `/plan`):
@@ -140,11 +142,11 @@ If the design wasn't from the cockpit, skip this step.
 
 For each completed task: `bd close <task-id>`
 
-Write the Implementation Report:
+Write the Implementation Report (use `$bd_id` from Step 1 — do NOT use any other task ID here):
 
 ```markdown
 ---
-beads_id: <orchestration-task-id>
+beads_id: <$bd_id from Step 1>
 ---
 
 # Implementation Report: [Design Name]
@@ -163,7 +165,7 @@ beads_id: <orchestration-task-id>
 [newly created task IDs for discovered work, or "None"]
 
 ## Tracking
-- Orchestration: <orchestration-task-id> — closed
+- Orchestration: <$bd_id from Step 1> — closed
 - Epic: <epic-id>
 ```
 
