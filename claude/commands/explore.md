@@ -7,6 +7,17 @@ The user provides a system, feature, or area to explore. Examples:
 - "how the API gateway routes requests"
 - "the billing pipeline"
 
+### Optional: --redesign <path>
+
+If the invocation includes `--redesign <path>`, read the prior exploration at
+`<path>` before spawning explorers. Use it to steer the new run from a different
+angle — identify what the prior doc covered well, what it missed or got wrong,
+and bias the four topic explorers (Data Flow, Schema, Integration, Invariant)
+toward the gaps. Do not just repeat the prior doc.
+
+When running under krust, the prior exploration path is also available in bd
+metadata at `.metadata.krust.inputs.prior_exploration`.
+
 ## Agent Strategy
 
 | Step | Parallel? | Why |
