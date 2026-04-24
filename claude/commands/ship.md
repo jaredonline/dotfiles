@@ -9,6 +9,7 @@ Inputs come from environment variables set by krust:
 - `ACTIONS_DIR` — directory where this skill emits action JSON files
 - `KRUST_SHIP_EXISTING_PR` — existing PR number if one exists; empty otherwise
 - `KRUST_SHIP_USE_GRAPHITE` — `"1"` if krust preflight selected Graphite, else `"0"`
+- `KRUST_DESIGN_PATH` — absolute path to the design doc, if krust resolved one (CLI `--design` or propagated from a chained implement); unset otherwise
 
 Krust writes the precomputed diff to `$ACTIONS_DIR/inputs/diff.patch` before invoking this skill.
 
@@ -35,14 +36,15 @@ bd show "$KRUST_BEADS_ID" --json
 ```
 
 Extract:
-- `metadata.krust.inputs.design_path` — design doc path (may be unset)
 - `metadata.krust.artifact_path` — implementation report path (may be unset)
 
 ### 2. Discover the design doc
 
-If `metadata.krust.inputs.design_path` is set, use it directly.
+If `$KRUST_DESIGN_PATH` is set and non-empty, use it directly. Krust already
+resolved it (CLI `--design`, or propagated from a chained implement) and
+verified the file exists.
 
-Otherwise, fall back to cockpit discovery (same loop as `/pr` step 2):
+Otherwise, fall back to cockpit grep:
 
 ```bash
 BRANCH_SLUG="${KRUST_BRANCH##*/}"   # or derive from the beads task title
