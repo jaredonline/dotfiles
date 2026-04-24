@@ -52,8 +52,11 @@ If `$KRUST_BEADS_ID` is not set:
 bd create --title="Epic: [design name]" --type=epic \
   --description="Implementation of [design name]" \
   --context="Design doc: [path]" \
-  --labels=<resolved-labels>
+  --labels=<resolved-labels>,type:plan-epic \
+  --metadata='{"krust":{"artifact_type":"plan-epic","project":"<project-id>","inputs":{"plan_epic":{"plan_task_id":"<plan-task-id>"}}}}'
 ```
+
+Where `<plan-task-id>` is the id returned by `bd create` in Step 1 (the plan tracking task) and `<project-id>` is the resolved project id from `project-tree.json` (see Step 1's "Project labeling" paragraph). Appending `type:plan-epic` to the labels and the `--metadata` flag identifies this epic as a plan-epic for downstream pipeline discovery.
 
 Store the epic ID. All tasks will be children of this epic.
 
@@ -138,7 +141,10 @@ Emit `create_task_graph` action to `$ACTIONS_DIR/task-graph.json`:
 ```json
 {
   "type": "create_task_graph",
-  "parent": "<optional-parent-epic-id-from-beads-metadata>",
+  "parent": "<KRUST_BEADS_ID>",
+  "project": "<value from `bd show $KRUST_BEADS_ID --json`.metadata.krust.project>",
+  "labels": ["<plan task labels stripped of 'type:plans'>"],
+  "plan_task_id": "<KRUST_BEADS_ID>",
   "epic": {
     "title": "Implement: Feature X",
     "description": "Epic description with context"
@@ -159,6 +165,14 @@ Emit `create_task_graph` action to `$ACTIONS_DIR/task-graph.json`:
   ]
 }
 ```
+
+Populate the top-level fields from the plan tracking task via `bd show $KRUST_BEADS_ID --json`:
+- `parent`: `$KRUST_BEADS_ID` (the plan tracking task becomes the parent of the epic).
+- `project`: read from `.metadata.krust.project`.
+- `labels`: the plan task's `labels` array, with any `type:plans` entry stripped out so the epic and child tasks inherit project labels without the plan-task marker.
+- `plan_task_id`: `$KRUST_BEADS_ID`.
+
+Fallback: if any of `project`, `labels`, or `plan_task_id` cannot be resolved (e.g. `project` missing from the plan task metadata), omit all three fields — the handler falls back to legacy behavior. Do NOT hardcode project names.
 
 The `tasks` array must be dependency-ordered — every ref in a task's `depends_on` must appear earlier in the array. Task descriptions must be self-contained (specs pasted in, not referenced).
 
