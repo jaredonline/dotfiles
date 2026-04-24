@@ -41,6 +41,8 @@ Read the design doc and extract:
 - **Dependencies** between components (from Data Flow section)
 - **Invariants** that constrain implementation (from Invariants section)
 
+**Trust file paths as canonical.** Paths referenced in the design (e.g. `krust/src/downstream.rs:465`) point to real files — open them with the Read tool, don't search for them. If you must locate an unfamiliar file, use `rg --files` or `ls` scoped to CWD. Never run `find /`, `find $HOME`, or any search whose root is broader than the project.
+
 ### 3. Create the epic
 
 If `$KRUST_BEADS_ID` is set:
