@@ -45,9 +45,9 @@ bd list --parent=<epic-matching-design> --status=open
 - **If results exist** → Mode A (task graph exists, proceed to Step 3A)
 - **If empty** → Mode B (no task graph, proceed to Step 3B)
 
-If `$KRUST_BEADS_ID` is set, read the epic ID from beads metadata:
+If `$KRUST_BEADS_ID` is set, `$bd_id` is the epic id:
 ```bash
-epic_id=$(bd show "$bd_id" --json | jq -r '.metadata.krust.inputs.epic_id')
+epic_id="$bd_id"
 ```
 
 Standalone: discover the epic from the design reference or `$ARGUMENTS` (existing behavior).
