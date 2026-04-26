@@ -54,6 +54,19 @@ Parse the user's request for:
 
 If `--redesign <path>` is provided, read the file at that path and use it as the starting point. Parse the prior doc's architecture, interfaces, decisions, and invariants as the baseline. The brief describes changes to make, not the full design.
 
+Before moving to exploration, check the project root for foundational documents that define how this project thinks about design:
+
+- `ARCHITECTURE.md` — system structure, component relationships, boundaries
+- `PRINCIPLES.md` — design values, conventions, non-negotiable patterns
+- `PHILOSOPHY.md` — broader design stance, trade-off preferences
+
+Read each file that exists. Skip any that don't — not every project has all three. Do not re-read CLAUDE.md (it's auto-loaded by the harness).
+
+Use what you learn to:
+1. Refine your understanding of the brief — does the project's philosophy constrain or expand the solution space?
+2. Write more targeted explorer prompts — tell explorers what principles to validate against.
+3. Inform synthesis — designs should align with stated principles unless the brief explicitly aims to change them.
+
 ### 3. Spawn exploration team (parallel)
 
 Spawn ALL agents in ONE message:
