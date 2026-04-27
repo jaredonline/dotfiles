@@ -54,6 +54,15 @@ Read inputs:
 - Under krust, the scenario brief, situation doc, known nodes, campaign_dir, and actions_dir live in bd metadata: `bd show $bd_id --json`, then extract from `.metadata.krust` (`brief`, `campaign_dir`, `inputs.situation`, `inputs.nodes`, `actions_dir`). The output path is `$KRUST_OUT`.
 - Standalone, parse `$ARGUMENTS` for scenario brief, situation doc, and known nodes.
 
+Identify the **world** and **season** the scenario belongs to. Read PHILOSOPHY.md, THEMES.md, and GOALS.md from the override chain (most specific wins):
+1. `<world>/<season>/{PHILOSOPHY,THEMES,GOALS}.md`
+2. `<world>/{PHILOSOPHY,THEMES,GOALS}.md`
+3. `guides/gm-standards.md` (global, always available)
+
+Missing files are skipped. These govern tone and design philosophy for this world/season — apply them throughout node design (clue tone, NPC voices, what kinds of revelations matter). Also read the world guide at `guides/<world>.md` if available.
+
+Standalone, the default situation doc is `<world>/<season>/situation.md` and the default output path is `<world>/<season>/nodes/<arc-slug>.md`.
+
 If a situation doc is provided, extract factions, NPCs, locations, and tensions as candidate nodes. If campaign context is needed and LegendKeeper is available, query via the explore-rpg pattern.
 
 If `--redesign <path>` is provided, read the file at that path and use it as the starting point. Parse the prior doc's nodes, clue network, timeline, and revelation list as the baseline. The brief describes changes to make, not the full scenario.
@@ -102,6 +111,9 @@ You are fleshing out one node in a TTRPG scenario graph.
 
 ## Scenario Premise
 {what the scenario is about}
+
+## World/Season Context
+{PHILOSOPHY, THEMES, GOALS content from the override chain — apply this to tone, NPC voices, clue style}
 
 ## Task
 Flesh out this node as a self-contained SITUATION (not a scene — a toolkit, not a script):

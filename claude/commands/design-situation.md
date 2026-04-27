@@ -41,6 +41,13 @@ The input format:
 
 ## Step 1: Parse Input + Gather Context
 
+- Identify the **world** and **season** the situation belongs to. Read PHILOSOPHY.md, THEMES.md, and GOALS.md from the override chain (most specific wins):
+  1. `<world>/<season>/{PHILOSOPHY,THEMES,GOALS}.md`
+  2. `<world>/{PHILOSOPHY,THEMES,GOALS}.md`
+  3. `guides/gm-standards.md` (global, always available)
+
+  Missing files are skipped. These files govern tone, themes, and design philosophy for this world/season — apply them throughout faction and NPC design.
+- Read the world guide from `guides/<world>.md` if available.
 - If campaign context is needed and LK is available, query via explore-rpg pattern (parallel MCP queries)
 - If an existing situation doc is provided, parse it as the starting point for revision
 - If `--redesign <path>` is provided, read the file and use it as the starting point
@@ -88,6 +95,9 @@ You are fleshing out one faction for a TTRPG political situation.
 
 ## Central Conflict
 {the conflict driving the situation}
+
+## World/Season Context
+{PHILOSOPHY, THEMES, GOALS content from the override chain — apply this to tone, NPC voices, and ideology}
 
 ## PC Goals (if known)
 {player character goals}
@@ -140,7 +150,7 @@ Spawn ALL faction agents in ONE message.
 
 Run the validation checklist. Remove any empty sections. Output the final document.
 
-Write the situation document to `$KRUST_OUT` (when set) or to a temp path.
+Write the situation document to `$KRUST_OUT` (when set) or to `<world>/<season>/situation.md` (standalone). The `situation.md` is a living doc — if it already exists, this run produces a revision (use `--redesign <path>` to make that explicit).
 
 Signal completion:
 ```bash
