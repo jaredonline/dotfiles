@@ -61,6 +61,8 @@ Identify the **world** and **season** the scenario belongs to. Read PHILOSOPHY.m
 
 Missing files are skipped. These govern tone and design philosophy for this world/season — apply them throughout node design (clue tone, NPC voices, what kinds of revelations matter). Also read the world guide at `guides/<world>.md` if available.
 
+**Always read `guides/node-design.md` before Step 2.** It is the authoritative reference for every structural rule the skill enforces.
+
 Standalone, the default situation doc is `<world>/<season>/situation.md` and the default output path is `<world>/<season>/nodes/<arc-slug>.md`.
 
 If a situation doc is provided, extract factions, NPCs, locations, and tensions as candidate nodes. If campaign context is needed and LegendKeeper is available, query via the explore-rpg pattern.
@@ -71,26 +73,58 @@ If `--redesign <path>` is provided, read the file at that path and use it as the
 
 ## Step 2: Design Node Skeleton + Clue Network
 
-Design the structural graph before fleshing out details.
+**Read `guides/node-design.md` before this step.** It is the authoritative reference for every structural rule below. The summary: ≥3 outbound and ≥3 inbound clues per node; default to layer-cake structure; the geometry does the work.
 
-1. **Identify 5-9 nodes.** For each: name, type (Location / Person / Organization / Event / Activity), one-line situation sketch.
+Design the structural graph before fleshing out details. Work in this order — do not skip to clues before tiers are placed.
 
-2. **Choose a structural pattern:**
-   - Cloud (default) — dense, asymmetric, modular
-   - Conclusions — multiple paths funnel toward a climactic node
-   - Layers — nodes in tiers, each tier points to the next deeper
-   - Dual Track — two independent clusters of 4-6 nodes each
-   - Hybrid — combine patterns as needed
+### Step 2a: Identify tiers
 
-3. **Sketch clue connections** between nodes — which nodes point to which, and roughly what kind of clue (physical evidence, testimony, document, observation, etc.). Clues should be consequences of antagonist/faction actions, not planted breadcrumbs.
+Decompose the scenario into **tiers** (layers in the layer cake). A tier is a phase of investigation or action — e.g. *setup → investigation → conclusion*, or *surface → middle → deep*, or *introduction → escalation → climax*. Most arc-scale scenarios have 3-4 tiers. Scenarios with more than 5 tiers usually want to be split into multiple arcs.
 
-4. **Identify entry points** — where PCs start. Mark these distinctly.
+Name each tier with one phrase that describes its function in the scenario.
 
-5. **Verify the Reachability Invariant:** every non-entry node must be reachable via at least 2 independent clue paths. This is a structural minimum, not a target.
+### Step 2b: Place nodes per tier
 
-6. **Flag chokepoints** — nodes reachable by only one path. Intentional chokepoints are fine (e.g., a final confrontation); accidental ones are bugs. Flag all with rationale.
+**Default: 3 nodes per tier.** This is not arbitrary — with 3 nodes per tier, each node naturally satisfies the structural invariant (≥3 outbound, ≥3 inbound clues) via 2 within-tier connections + ≥1 inter-tier connection.
 
-7. **Build the revelation list** — what PCs can learn across the scenario, and which nodes contain the evidence.
+Wider or narrower tiers require **written justification** in the design doc:
+- **2-node tier**: each node owes its 3rd clue to a different tier or a sub-node. Acceptable when the design demands a tight chokepoint pair (e.g. inciting incident + immediate aftermath). Document the justification.
+- **4+ node tier**: each node still needs ≥3 outbound and ≥3 inbound clues, which now requires explicit clue-counting and is harder to keep coherent. Acceptable for genuinely fan-shaped investigation (the dragnet, the urban canvass) where multiple independent leads converge. Document the justification.
+
+For each node: name, type (Location / Person / Organization / Event / Activity), one-line situation sketch.
+
+### Step 2c: Draw within-tier connections
+
+Within each tier, **every node connects to every other node in the tier**. For a 3-node tier, this is 3 edges. Each edge represents at least one concrete clue (physical evidence, testimony, document, observable event) that an antagonist or faction's actions have produced. Clues are consequences, not breadcrumbs.
+
+### Step 2d: Draw inter-tier connections
+
+Each node in tier N has **≥1 outbound clue to a node in tier N+1** (the "elevator clue"). For a 3-node tier feeding a 3-node tier, this is 3 edges minimum. More is fine; wider fan-out makes the next tier reachable from more directions.
+
+Inter-tier movement is bidirectional in the layer cake — PCs may go forward, backward, or sideways. Plan for backward references (a tier-2 node confirms what was suspected at tier-1) and lateral discovery (a tier-3 node reveals why a tier-1 thread mattered).
+
+### Step 2e: Identify entry points
+
+Mark where PCs start. The entry tier is usually tier 1, but may include proactive nodes that reach into PCs' lives from later tiers (a villain sends a messenger; a faction summons them).
+
+### Step 2f: Verify the structural invariant
+
+For each node, count:
+- **Outbound clues** (leads to other nodes): ≥3
+- **Inbound clues** (leads from other nodes): ≥3 for non-entry nodes
+- **Independent paths**: ≥2 (the reachability invariant — survives one accident)
+
+Flag any node that fails this check. Either add clues or merge/remove the node. Do not proceed to Step 3 with a graph that fails the invariant.
+
+### Step 2g: Flag chokepoints, dead ends, and proactive nodes
+
+- **Chokepoints**: nodes reachable by only one path. Intentional (e.g. inciting incident, final confrontation) is fine — label as intentional. Accidental is a bug — fix it.
+- **Dead ends**: nodes with no outbound clues. Acceptable as red herrings or cleared locations. Clues *to* dead ends are bonus and don't count toward the 3-outbound minimum at the source node.
+- **Proactive nodes**: at least one. These act on a default timeline whether PCs visit or not. Trigger conditions stated explicitly.
+
+### Step 2h: Build the revelation list
+
+What PCs can learn across the scenario, and which nodes contain the evidence. This becomes a section in the final document.
 
 ---
 
@@ -335,81 +369,13 @@ Append the lore check results as a `## Lore Check` section at the end of the out
 
 ---
 
-## Framework: Node-Based Scenario Design Theory
+## Framework Reference
 
-This section governs all structural decisions in node graph design.
+Node-based scenario design theory — the inverted Three Clue Rule, node types, clue types, push/pull navigation, structural patterns, the reachability invariant, dead-end rules, situations-vs-scenes — lives in **`guides/node-design.md`** in the world repo. That guide is the authoritative source for every structural rule referenced in this skill. Do not duplicate it here; do not work from a half-remembered version of it.
 
-### The Problem with Plots
+If `guides/node-design.md` does not exist in the project being worked on, fall back to the Alexandrian's *Node-Based Scenario Design* Parts 1-9 at thealexandrian.net.
 
-Most RPG adventures are linear: A -> B -> C -> D. Each transition is a chokepoint — if players don't find the clue at A pointing to B, the adventure breaks. The Three Clue Rule helps but doesn't fix the structure. Branching paths require 5x the prep for the same play time.
-
-### The Core Insight: The Inverted Three Clue Rule
-
-The original Three Clue Rule says: for any conclusion you want PCs to reach, include at least 3 clues.
-
-The inversion says: if PCs have access to any 3 clues, they will reach at least 1 conclusion.
-
-Scatter clues across nodes pointing to different destinations. Same prep effort as linear design, vastly more flexibility.
-
-### What Is a Node?
-
-A node is a point of interest — a self-contained situation. Five types:
-
-1. **Location** — A physical place
-2. **Person** — A specific individual
-3. **Organization** — A group
-4. **Event** — A time-bound occurrence
-5. **Activity** — A task PCs perform
-
-Nodes can nest: fractal principle — zoom in to find sub-nodes, zoom out to find it's part of a larger node.
-
-### Clue Types
-
-Two types:
-
-- **Leads** (scenario-solve clues) — Point to new nodes. Drive navigation.
-- **Evidence** (concept-solve clues) — Point to solutions/conclusions. Help PCs understand what happened.
-
-Leads and evidence often overlap. But evidence alone does not satisfy the Inverted Three Clue Rule unless it also functions as a lead.
-
-### Navigation: Push and Pull
-
-- **Pull** — PCs seek a node because it's desirable
-- **Push** — PCs are forced into a node
-
-Seven navigation methods:
-
-1. **Clues** — primary method
-2. **Geography** — physical adjacency
-3. **Temporality** — time-triggered events
-4. **Random triggering** — encounter tables, use sparingly
-5. **Proactive nodes** — content that seeks out PCs (most powerful)
-6. **Following trails** — player-initiated, GM-facilitated
-7. **Player initiative** — PCs investigate something unplanned
-
-### Proactive Nodes and Default Timelines
-
-Proactive nodes don't wait for PCs — they act on their own timeline. Every proactive node should have an explicit trigger condition. The default timeline is the backbone — write what every NPC/faction does if PCs never intervene.
-
-### Structural Patterns
-
-- **The Cloud** — dense, asymmetric, modular (default target)
-- **Conclusions** — multiple paths funnel toward a climactic node
-- **Layers** — nodes in tiers, each tier points to the next deeper
-- **Dual Tracks** — two independent clusters of 4-6 nodes each (most useful for campaigns)
-- **Dead Ends** — acceptable, naturally absorbed by redundant clue structure
-
-### Cognitive Limits
-
-Working memory holds 5-9 items. Keep active node clusters in this range. Dual-track is designed around this.
-
-### The Reachability Invariant
-
-Every non-entry node must be reachable via at least 2 independent clue paths. This is the Inverted Three Clue Rule as a structural invariant. It's a minimum, not a target. Nodes reachable by only one path are chokepoints — flag for GM review.
-
-### Situations, Not Scenes
-
-Every node is a situation (toolkit: personnel, layout, information, NPC goals) not a scene (script). Prep enough to adjudicate any player approach.
+The single most important rule to keep in front of you while designing: **every non-entry node has ≥3 outbound leads and ≥3 inbound leads, and every node is reachable via ≥2 independent paths.** The default layer-cake structure (3 nodes per tier, all-to-all within-tier, ≥1 inter-tier elevator clue per node) makes this geometrically natural. Wider or narrower tiers require written justification per Step 2b.
 
 ---
 
@@ -477,17 +443,26 @@ Labeled edges show clue type. Entry point(s) marked distinctly.}
 
 ## Validation Checklist
 
-- [ ] Every non-entry node is reachable via at least 2 independent clue paths
-- [ ] No node has zero outgoing clues unless it's a deliberate dead end or resolution node
-- [ ] Chokepoint nodes are flagged with rationale
+**Structural invariant (the rules that govern; from `guides/node-design.md`):**
+- [ ] Every non-entry node has ≥3 outbound leads
+- [ ] Every non-entry node has ≥3 inbound leads
+- [ ] Every non-entry node is reachable via ≥2 independent clue paths
+- [ ] Each tier has 3 nodes by default; wider or narrower tiers are justified in writing
+- [ ] Within each tier, every node connects to every other node in the tier
+- [ ] Every node in tier N has ≥1 outbound lead to a node in tier N+1
+- [ ] Chokepoint nodes (single-path entry) are flagged as intentional with rationale
+- [ ] Dead ends are flagged; bonus clues to dead ends are not counted toward the 3-clue minimums
+
+**Scenario completeness:**
 - [ ] Revelation list covers both leads and evidence
 - [ ] Default timeline shows what NPCs/factions do without PC intervention
-- [ ] At least one node has proactive behavior
-- [ ] Node count is 5-9; larger scenarios split into clusters
+- [ ] At least one node has proactive behavior with an explicit trigger condition
 - [ ] Each node is a situation (toolkit), not a scene (script)
-- [ ] Clue discovery methods are varied
+- [ ] Clue discovery methods are varied (physical evidence, testimony, document, observation, overheard, found-on-body, etc.)
 - [ ] Every clue in the graph traces to an action in the Reverse Story
-- [ ] Every section present is substantive
+- [ ] Every section present is substantive (no empty placeholders)
+
+**Output:**
 - [ ] Output file written to `$KRUST_OUT` (when running under krust)
 
 ---
