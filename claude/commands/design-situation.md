@@ -64,6 +64,7 @@ bd_id=$(krust bd-start task "Situation: [conflict premise]")
 Read inputs:
 - Under krust, the conflict premise lives in bd metadata: `bd show $bd_id --json`, extract from `.metadata.krust.brief`.
 - Standalone, parse `$ARGUMENTS` for conflict premise, PC goals, and setting context.
+- If no PC goals are provided, continue designing the situation but generate `## PC-Facing Opportunities` instead of `## PC Goal Paths`. Use `[NEEDS GM INPUT]` only where a goal-specific answer depends on unknown campaign intent.
 
 ---
 
@@ -121,10 +122,24 @@ Flesh out this faction using the Proactive Roleplaying framework:
    - Villains: goals conflict with PCs, must be villainous + powerful + goal-driven
    - Patrons: grant faction resources in exchange for advancing patron goals, higher status
 8. **A progress clock**: what they're working toward, 4/6/8 segments, what fills/empties it
+9. **PC Leverage**:
+   - What the PCs can offer this faction
+   - What the PCs can threaten, expose, steal, protect, or sabotage
+   - What information, access, alliance, or material resource matters to this faction
+10. **Concessions**:
+   - What the faction or its NPCs can give the PCs
+   - What pressure or proof is required before they give it
+   - What price, favor, risk, or compromise they demand
+11. **Clock Interventions**:
+   - What PC actions fill the clock
+   - What PC actions stall or empty the clock
+   - What PC actions redirect the clock into a different faction conflict
 
 Design goals that CREATE TENSION with the other factions and with PC goals.
 Short-term goals should produce concrete encounter hooks.
 The "good" side should be struggling. The "ugly" faction should be a genuine tipping point.
+Player-facing guidance must describe tools and pressure points the GM can adjudicate, not scripted PC plans. Do not write "if the PCs do X, then Y" branches.
+If PC-specific leverage depends on unknown campaign facts, use `[NEEDS GM INPUT]`.
 
 **FORMATTING RULE**: Each bold field (**Role in conflict**, **Identity**, **Area of Operation**, etc.) MUST be separated by a blank line so they render as distinct paragraphs in markdown. Without blank lines, CommonMark collapses them into a single unreadable paragraph.
 
@@ -140,9 +155,11 @@ Spawn ALL faction agents in ONE message.
 - Weave faction agent results into a coherent document
 - Build a faction relationship map (Mermaid diagram)
 - Map PC goal intersections (table: PC Goal | Faction | Overlap | Tension)
+- If PC goals were provided, synthesize `## PC Goal Paths` immediately after intersections. For every PC goal, include at least one concrete path with viable approaches, required leverage, key factions/NPCs, obstacles, costs/risks, progress signals, and clock effects.
+- If PC goals were not provided, synthesize `## PC-Facing Opportunities` instead. These are likely playable opportunities implied by the premise, not invented player goals.
 - Write the default timeline: what each faction does if PCs never intervene
 - Identify internal divisions IF they serve this situation (apply three-faction lens recursively only where it adds pressure — this is a tool, not a mandate)
-- Ensure NPC personal goals are distinct from faction goals
+- Ensure NPC personal goals are distinct from faction goals and that every key NPC offers or threatens something useful at the table
 
 ---
 
@@ -179,6 +196,8 @@ This section governs all creative decisions. Apply it precisely — do not impro
 Prep situations, not plots. A plot is a predetermined sequence of events — it's fragile, breaks when players deviate, and robs them of agency. A situation is a set of circumstances: who wants what, what resources they have, what they'll do if unopposed. The GM describes what exists and what NPCs are doing; the story emerges from player choices.
 
 Prep tools, not contingencies. Don't plan "if PCs do X, NPCs do Y" — that's wasted work because PCs won't do X, or if they do, everything else changes too. Instead, prep the guard roster, the NPC's daily schedule, the faction's resources and goals. That's enough to adjudicate any player plan.
+
+Player achievement guidance is still a tool, not a contingency. Give the GM leverage, obstacles, concessions, costs, signals, and clock effects so they can adjudicate many player plans. Do not write scripted solution branches or assume what the PCs will do.
 
 Scenario timelines are the engine of a living world. Write what NPCs and factions do if PCs never intervene. When PCs disrupt the timeline, revise it based on NPC goals and resources. The timeline is a living document, not a script.
 
@@ -220,6 +239,19 @@ Goals are the engine of proactive play. Design them to collide with PC goals.
 - Mid-term: concrete stepping stones, generate arcs
 - Short-term: immediate actions, generate encounters — build as-needed
 
+### PC Goal Path Design
+
+When PC goals are known, every goal needs concrete paths toward achievement. A path is not a plot; it is a set of playable handles the GM can adjudicate:
+- **Viable approaches**: 2-4 broad methods such as negotiate, expose, raid, protect, recruit, investigate, bargain, disrupt, legitimize, or divide
+- **Required leverage**: proof, alliance, access, resource, captive, secret, ritual component, legal claim, public support, or military position
+- **Key factions/NPCs**: named actors from this situation whose cooperation, opposition, resources, or secrets matter
+- **Obstacles**: concrete faction, NPC, resource, geography, timing, ideology, or information barriers
+- **Costs/risks**: enemies made, clock acceleration, collateral damage, debt, reputation loss, moral compromise, or lost opportunities
+- **Progress signals**: observable changes that tell the GM and players the goal is closer
+- **Clock effects**: which clocks are filled, stalled, emptied, or redirected by plausible PC action
+
+When PC goals are not known, design PC-facing opportunities instead: pressure points and openings implied by the situation. Mark goal-specific unknowns with `[NEEDS GM INPUT]` rather than inventing campaign intent.
+
 ### NPC Design in Proactive Fantasy
 
 Three categories:
@@ -230,6 +262,8 @@ Three categories:
 ### Tracking: Clocks
 
 Blades in the Dark-style progress clocks. 4/6/8 segments. Fill based on PC interactions.
+
+For every faction clock, also identify how PC action can fill it, stall or empty it, or redirect it into conflict with another faction. These are adjudication tools, not promises that PCs will take those actions.
 
 ### Faction Tracking Shorthand
 
@@ -267,14 +301,38 @@ Five lines per faction: name, relative power, location, brief description, 1-2 l
 - **Short-term**: {Immediate actions}
 
 **Key NPCs**:
-| Name | Role | Personal Goal | Personality | Method of Pursuit |
-|------|------|--------------|-------------|-------------------|
+| Name | Role | Personal Goal | Personality | Method | Offers | Threatens |
+|------|------|---------------|-------------|--------|--------|-----------|
 
 **Clock**: {Goal} — {4/6/8 segments} — {what fills it}
+
+**PC Leverage**:
+- **Offer**: {resource, proof, service, alliance, protection, access}
+- **Pressure**: {threat, exposure, sabotage, rival support, legal/social/magical force}
+- **Information**: {secret, uncertainty, dependency, or question the PCs can exploit}
+
+**Concessions**:
+- {Concession}: requires {condition}; costs {price/risk/compromise}
+
+**Clock Interventions**:
+- **Fill**: {PC action that advances the faction clock}
+- **Stall/Empty**: {PC action that slows or reverses the clock}
+- **Redirect**: {PC action that changes the clock target or creates faction conflict}
 
 ## Internal Divisions (if they serve this situation)
 ## Faction Relationship Map
 ## PC Goal Intersections
+| PC Goal | Faction | Overlap | Tension |
+|---------|---------|---------|---------|
+
+## PC Goal Paths
+| PC Goal | Viable Approaches | Required Leverage | Key Factions/NPCs | Obstacles | Costs/Risks | Progress Signals | Clock Effects |
+|---------|-------------------|-------------------|-------------------|-----------|-------------|------------------|---------------|
+
+## PC-Facing Opportunities
+| Opportunity | Why It Matters | Useful Leverage | Factions/NPCs | Risks | Progress Signals |
+|-------------|----------------|-----------------|---------------|-------|------------------|
+
 ## Default Timeline
 ## Lore Check
 ## Open Threads
@@ -287,7 +345,13 @@ Five lines per faction: name, relative power, location, brief description, 1-2 l
 - [ ] Central conflict is specific, not generic
 - [ ] Every faction has goals at all three timescales
 - [ ] Every NPC has a personal goal distinct from their faction's
+- [ ] Every key NPC has something they offer or threaten; otherwise they were removed or redesigned
 - [ ] At least one PC goal intersects with each faction (if PC goals were provided)
+- [ ] If PC goals were provided, every PC goal has at least one concrete path in `## PC Goal Paths`
+- [ ] Each PC goal path names leverage, obstacles, costs/risks, progress signals, and clock effects
+- [ ] If PC goals were not provided, `## PC-Facing Opportunities` gives playable openings implied by the premise
+- [ ] Every faction has PC Leverage, Concessions, and Clock Interventions
+- [ ] PC achievement guidance describes tools and pressure points, not scripted solutions or PC decision trees
 - [ ] Default timeline shows what each faction does without PC intervention
 - [ ] No faction is pure set dressing — each creates pressure on the PCs
 - [ ] The "good" side is on the back foot — there's a reason PCs matter
