@@ -125,7 +125,11 @@ After all workers complete:
 - Run any existing tests (`go test ./...`, `npm test`, `pytest`, etc.)
 - Fix integration issues — these are usually import paths, type mismatches, or missing glue code
 - Collect `## Discovered Work` sections from all worker outputs
-- Create beads tasks for discovered items: `bd create --title="[title]" --description="[description]" --type=task --parent=<epic-id> --labels=<resolved-labels>`
+- Create beads tasks for discovered items as **top-level tasks** (NOT children of the epic) with a dependency on the epic. This keeps the epic eligible for auto-close while still surfacing the work in `bd ready` once the epic closes:
+  ```bash
+  new_id=$(bd create --title="[title]" --description="[description]" --type=task --labels=<resolved-labels>)
+  bd dep add "$new_id" <epic-id>
+  ```
 - Do not run any git commands — krust owns git operations
 
 If any check fails, fix it before reporting.
