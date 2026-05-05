@@ -4,17 +4,9 @@ description: Apply feedback to a situation design document preserving structural
 user_invocable: false
 ---
 
-**When running under krust** ($KRUST_BEADS_ID is set):
+Read the artifact at `$KRUST_OUT`.
 
-Read the artifact path and feedback from beads:
-- Run: `bd show $KRUST_BEADS_ID --json`
-- Extract `artifact_path` from `.metadata.krust.artifact_path`
-- Extract latest feedback from `.notes` (last line)
-
-**When running standalone** ($KRUST_BEADS_ID is not set, fallback):
-
-- Read the file at $KRUST_OUT
-- If $KRUST_FEEDBACK is set and non-empty, use it as the feedback
+The feedback text is `$KRUST_FEEDBACK` (always set; may be empty). If empty, the user picked `[E]dit` and edited the file by hand — no feedback text to apply, review their edits for consistency only.
 
 ---
 
