@@ -20,7 +20,7 @@ The more the user front-loads, the less exploration you do and the faster you co
 |---|---|---|
 | 1. Create Beads task | No — main agent | Track work before starting |
 | 2. Understand brief | No — main agent | Needs user input |
-| 3. Exploration team | Yes — 3 agents | Independent research |
+| 3. Exploration team (TeamCreate → AddTeammate ×3 → TeamDelete) | Yes — 3 teammates | Independent research with explicit team lifecycle |
 | 4. Synthesize | No — main agent | Combines findings into design |
 | 5. Spec interfaces | No — main agent | Depends on synthesis |
 | 6. Simplification review | No — 1 agent (clean-room) | Isolated from exploration context |
@@ -67,22 +67,65 @@ Use what you learn to:
 2. Write more targeted explorer prompts — tell explorers what principles to validate against.
 3. Inform synthesis — designs should align with stated principles unless the brief explicitly aims to change them.
 
-### 3. Spawn exploration team (parallel)
+### 3. Spawn exploration team (parallel, team lifecycle)
 
-Spawn ALL agents in ONE message:
+#### 3.1 Create team
 
-**Codebase Explorer** (Agent, model=opus):
-> Explore the existing codebase relevant to this design. Map: current architecture, existing interfaces, data flows, tests, and patterns used in this area. Return: structured summary with file paths, key types, and how things currently work. Focus on what's load-bearing vs. what's safe to change.
+Generate a kebab-case `<project-slug>` (max 30 chars) from the design topic.
 
-**Prior Art Explorer** (Agent, model=opus):
-> Look for existing patterns in this codebase that solve similar problems. Find: related abstractions, conventions, error handling patterns, test patterns. Return: list of patterns with examples and file paths. The design should be consistent with established codebase conventions.
+```
+TeamCreate(team_name="design-<project-slug>")
+```
 
-**Devil's Advocate** (Agent, model=opus):
-> Challenge the proposed approach. Consider: What could go wrong? What are the failure modes? Are there simpler alternatives? What's the maintenance burden? Where will this design break in 6 months? Return: ranked list of concerns with severity and suggested mitigations.
+#### 3.2 Spawn teammates (ALL in ONE message)
+
+Spawn ALL three teammates in ONE assistant message for true parallelism:
+
+**Codebase Explorer:**
+```
+AddTeammate(
+  team_name="design-<project-slug>",
+  name="codebase-explorer",
+  model="opus",
+  prompt="Explore the existing codebase relevant to this design. Map: current architecture, existing interfaces, data flows, tests, and patterns used in this area. Return: structured summary with file paths, key types, and how things currently work. Focus on what's load-bearing vs. what's safe to change."
+)
+```
+
+**Prior Art Explorer:**
+```
+AddTeammate(
+  team_name="design-<project-slug>",
+  name="prior-art-explorer",
+  model="opus",
+  prompt="Look for existing patterns in this codebase that solve similar problems. Find: related abstractions, conventions, error handling patterns, test patterns. Return: list of patterns with examples and file paths. The design should be consistent with established codebase conventions."
+)
+```
+
+**Devil's Advocate:**
+```
+AddTeammate(
+  team_name="design-<project-slug>",
+  name="devils-advocate",
+  model="opus",
+  prompt="Challenge the proposed approach. Consider: What could go wrong? What are the failure modes? Are there simpler alternatives? What's the maintenance burden? Where will this design break in 6 months? Return: ranked list of concerns with severity and suggested mitigations."
+)
+```
+
+#### 3.3 Wait for all reports, then tear down
+
+After ALL three teammates have returned their findings:
+
+```
+TeamDelete(team_name="design-<project-slug>")
+```
+
+Do NOT advance to step 4 until every teammate has reported.
 
 ### 4. Synthesize into design document
 
-Combine explorer findings with the user's brief. Make decisions — don't present options. For each decision, briefly note why alternatives were rejected.
+Combine teammate findings with the user's brief. Weight findings flagged by 2+ teammates highest (consensus) and surface them first in the relevant Key Decisions row; integrate single-teammate findings after.
+
+Make decisions — don't present options. For each decision, briefly note why alternatives were rejected.
 
 ### 5. Spec all interfaces explicitly
 
@@ -123,10 +166,32 @@ After the design is written, spawn a simplification reviewer with ONLY the desig
 > - Could two components be merged?
 > - Is any flexibility speculative (no concrete use case)?
 >
-> For each recommendation, explain what functionality/correctness/invariant would be affected.
-> Return: numbered list of simplification recommendations with impact analysis.
+> Return a structured simplification report in this exact format:
+>
+> ```markdown
+> # Simplification Report
+>
+> ## Summary
+> - Recommendations: <count>
+> - By type: <merge:N | extract:N | remove:N | restructure:N | clarify:N>
+>
+> ## Recommendations
+>
+> ### 1. [Short title]
+> **Type**: Merge | Extract | Remove | Restructure | Clarify
+> **Location**: [Section/component in design doc]
+> **Current State**: [Quote or describe]
+> **Proposed Change**: [Specific simplification]
+> **Rationale**: [Why this improves the design]
+> **Risk Assessment**:
+> - Functionality impact: None | Low | Medium | High
+> - Correctness impact: None | Low | Medium | High
+>
+> ## Recommendations NOT Made
+> - **[Area]**: [Why simplification would be harmful]
+> ```
 
-For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY. Apply accepted simplifications to the design.
+For each recommendation: ACCEPT, REJECT (with reason), or MODIFY. Apply accepted simplifications to the design.
 
 ### 7. Output
 
@@ -209,6 +274,9 @@ Before presenting the final document, verify:
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
 - [ ] ## Tracking section includes Beads task ID
 - [ ] `krust artifact designs <slug> <path>` was called with the final document path
+- [ ] Step 3 used `TeamCreate` and `TeamDelete` around the parallel teammate spawn (team lifecycle)
+- [ ] Synthesis (step 4) ran consensus detection and surfaced 2+-teammate findings first
+- [ ] Simplifier output (step 6) uses Type / Location / Current State / Proposed Change / Rationale / Risk Assessment format
 
 If any check fails, fix it before presenting.
 

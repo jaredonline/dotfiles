@@ -24,7 +24,7 @@ metadata at `.metadata.krust.inputs.prior_exploration`.
 |---|---|---|
 | 1. Create Beads task | No — main agent | Track work before starting |
 | 2. Scope exploration | No — main agent | Needs user input to define focus |
-| 3. Topic explorers (Data Flow, Schema, Integration, Invariant) | Yes — 4 agents | Independent research areas |
+| 3. Topic explorers (Data Flow, Schema, Integration, Invariant, Devil's Advocate) | Yes — 5 agents | Independent research areas + skeptic |
 | 4. Synthesize | No — main agent | Combines all explorer output |
 | 5. Output | No — main agent | Formats final document |
 | 6. Self-validation | No — main agent | Checks output completeness |
@@ -73,9 +73,29 @@ Spawn ALL explorers in ONE message. Each gets a focused area:
 **Invariant Explorer** (Agent, model=opus):
 > Identify constraints, invariants, and implicit rules. Look for: validation logic, error handling patterns, retry policies, ordering guarantees, consistency requirements. Return: list of invariants with the code that enforces them.
 
+**Devil's Advocate** (Agent, model=opus):
+> Challenge the other explorers' findings. Look for: undocumented behavior, race conditions, edge cases not covered by tests, claims that look like inference dressed up as fact, integration assumptions that may not hold under load. Where possible, write small probe scripts or run targeted tests to falsify a claim rather than accept it. Return: ranked list of concerns with the specific finding being challenged, the falsification attempt, and the result.
+
+#### Execution verification protocol (applies to ALL five explorers)
+
+Each explorer's prompt implicitly carries this protocol. When a claim can be verified by running code, prefer execution over inference:
+
+- **Targeted tests**: `go test ./path/to/package -run TestRelevant -v -count=1 -short -timeout 30s` (always scope to a package + test name; never `go test ./...`)
+- **Probe scripts**: small ephemeral scripts to confirm a behavior. Run, capture the result in your report, then delete.
+- **Benchmarks** for performance claims: `go test -bench=BenchmarkX -benchmem`
+- **External evidence**: if MCP tools are available (Datadog, Slack), query for production data or discussion context.
+
+Each finding an explorer reports must carry one of four labels:
+- `code reading` — derived only from reading source files
+- `execution verified` — confirmed by running code (test, probe, benchmark)
+- `production data` — confirmed by Datadog metrics or other production signals
+- `discussion context` — supported by Slack threads, design docs, or other discussion
+
+Discover available MCP tools once at the start of step 3 with a single call: `ToolSearch(query="datadog OR slack OR statsig OR mcp", max_results=20)`. Extract just the tool names into a comma-separated list and inject into each teammate prompt under a `## Available External Tools` heading (e.g., `## Available External Tools\nmcp__datadog__query_metrics, mcp__slack__slack_search_public, ...` — or the literal string `none` if nothing matched). If a tool isn't available, the teammate notes the gap rather than working around it.
+
 ### 4. Synthesize
 
-Combine all explorer findings into a single structured document. Resolve conflicts between explorers. Fill gaps by reading additional files if needed.
+Combine all explorer findings into a single structured document. Resolve conflicts between explorers — when two findings conflict, prefer the one with stronger evidence using this precedence: `execution verified` and `production data` outrank `code reading` and `discussion context`; between two findings of the same tier, use judgment (cite both in the Evidence Summary). Fill gaps by reading additional files if needed; if a high-value claim is `code reading` only and trivial to verify, run the verification yourself before recording it.
 
 ### 5. Output
 
@@ -126,6 +146,26 @@ Constraints the system maintains, with the code that enforces them.
 ## Failure Modes
 What breaks and how the system handles it.
 
+## Evidence Summary
+
+| Finding | Verification | Confidence |
+|---------|-------------|------------|
+| <claim> | <how it was checked, e.g., `go test ./pkg -run TestX` passed> | execution verified |
+| <claim> | Read <file>:<line> | code reading |
+| <claim> | Datadog dashboard <name> | production data |
+| <claim> | Slack thread <link or summary> | discussion context |
+
+Use one of the four labels: `code reading`, `execution verified`, `production data`, `discussion context`.
+
+## Investigation Log
+
+The operational record of what was run during this exploration. Distinct from the Evidence Summary above: the Summary cites the verification *behind each finding*, while this Log captures investigations that span multiple findings, that produced negative or null results, or that informed the exploration without surfacing as a discrete claim. If every entry here also appears in the Evidence Summary, this section may be omitted with a note: "All investigations are reflected in the Evidence Summary."
+
+- **Tests run**: command + pass/fail + brief result
+- **Probe scripts**: what behavior was checked, the result (script itself was deleted after running)
+- **Benchmarks**: command + numeric result
+- **External data**: Datadog queries run, Slack threads consulted
+
 ## Tracking
 - Beads: <task-id> — closed
 ```
@@ -143,6 +183,10 @@ Before presenting the final document, verify:
 - [ ] No section is a restatement of another — each adds distinct information
 - [ ] ## Tracking section includes Beads task ID
 - [ ] `krust artifact explorations <slug> <path>` was called with the final document path
+- [ ] Five explorers were spawned (Data Flow, Schema, Integration, Invariant, Devil's Advocate)
+- [ ] Every claim in the Evidence Summary carries one of the four labels
+- [ ] Investigation Log lists every test/probe/benchmark/external query that was actually run
+- [ ] No probe scripts left on disk
 
 If any check fails, go back and fill the gap before presenting.
 
