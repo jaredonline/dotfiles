@@ -1,5 +1,7 @@
 You are shipping a completed implementation as a pull request. Your goal is to produce a PR title and body from the design and implementation report, then emit a `submit` action for krust to execute.
 
+Under krust, this skill never runs git, gh, or gt. All execution is performed by `handle_submit` after action approval.
+
 ## Input
 
 Inputs come from environment variables set by krust:
@@ -8,8 +10,11 @@ Inputs come from environment variables set by krust:
 - `KRUST_OUT` — path to write the PR body markdown (artifact)
 - `ACTIONS_DIR` — directory where this skill emits action JSON files
 - `KRUST_SHIP_EXISTING_PR` — existing PR number if one exists; empty otherwise
-- `KRUST_SHIP_USE_GRAPHITE` — `"1"` if krust preflight selected Graphite, else `"0"`
+- `KRUST_SHIP_VCS_STRATEGY` — `"git"` or `"graphite"`
+- `KRUST_SHIP_OPERATION` — `"create"` or `"modify"`
 - `KRUST_DESIGN_PATH` — absolute path to the design doc, if krust resolved one (CLI `--design` or propagated from a chained implement); unset otherwise
+
+The skill is never invoked when `KRUST_SHIP_VCS_STRATEGY=graphite` and `KRUST_SHIP_OPERATION=modify` — krust handles that case in-process.
 
 Krust writes the precomputed diff to `$ACTIONS_DIR/inputs/diff.patch` before invoking this skill.
 
@@ -72,7 +77,9 @@ Krust wrote this file during preflight. Do not run `git diff` — git is blocked
 
 ### 5. Delegate title+body generation to /pr
 
-Spawn `/pr` as a sub-agent (Agent tool, `model=opus`). Pass the discovered design doc path, the implementation report path, and the diff content. Instruct the sub-agent:
+If `KRUST_SHIP_OPERATION=modify`, skip the `/pr` sub-agent entirely. Generate `commit_message` directly from the staged diff (same conventions as the create path's commit subject — preserve `[area]` brackets, under 70 chars). The existing PR's title and body stay put — emit empty strings for `title` and `body`. Skip ahead to Step 7.
+
+Otherwise (`KRUST_SHIP_OPERATION=create`), spawn `/pr` as a sub-agent (Agent tool, `model=opus`). Pass the discovered design doc path, the implementation report path, and the diff content. Instruct the sub-agent:
 
 - Produce only the PR title and the PR body markdown — do not run git, gh, or gt.
 - Follow `/pr`'s title convention (`[area] short description`, lowercase, under 70 chars).
@@ -88,30 +95,57 @@ Write `body` to `$KRUST_OUT`. This is the skill's artifact for krust.
 
 ### 7. Emit the submit action
 
-Write exactly one action JSON to `$ACTIONS_DIR/<random>.json` (use `uuidgen`, `mktemp`, or a timestamp-based name):
+Write exactly one action JSON to `$ACTIONS_DIR/<random>.json` (use `uuidgen`, `mktemp`, or a timestamp-based name). The shape depends on `KRUST_SHIP_OPERATION`.
+
+#### Shape 1 — `KRUST_SHIP_OPERATION=create` (Graphite or Git)
 
 ```json
 {
   "type": "submit",
   "target_repo": "",
   "branch": "",
-  "title": "<from /pr>",
-  "body": "<from /pr>",
+  "vcs_strategy": "git",
+  "operation": "create",
+  "title": "[ship] krust-ify pr",
+  "body": "...",
   "draft": true,
-  "use_graphite": false,
   "existing_pr_number": null,
-  "commit_message": "<short, derived from title>"
+  "commit_message": "[ship] krust-ify pr"
 }
 ```
 
-Populate each field:
+Rules:
 
-- `target_repo`, `branch` — empty strings. Krust overwrites both before `handle_submit` runs.
+- `vcs_strategy` MUST be the `KRUST_SHIP_VCS_STRATEGY` value verbatim.
+- `operation` MUST be `"create"`.
 - `title`, `body` — verbatim from the `/pr` sub-agent output.
+- `commit_message` MUST equal `title` byte-for-byte (brackets preserved). Do NOT strip `[area]` tags. Do NOT lowercase.
+- `target_repo` and `branch` are empty placeholders — krust overwrites both via `rewrite_submit_action_targets`.
 - `draft` — `true` when `KRUST_SHIP_EXISTING_PR` is empty (new branch); `false` when an existing PR is being updated. Krust may override based on CLI flags.
-- `use_graphite` — `true` if `KRUST_SHIP_USE_GRAPHITE == "1"`, else `false`.
 - `existing_pr_number` — `null` if `KRUST_SHIP_EXISTING_PR` is empty; otherwise the integer PR number.
-- `commit_message` — derived from `title` by stripping bracketed area tags and lowercasing. Example: `[ship] add skill for krust` → `add skill for krust`.
+
+#### Shape 2 — `KRUST_SHIP_OPERATION=modify` (Git only)
+
+```json
+{
+  "type": "submit",
+  "target_repo": "",
+  "branch": "",
+  "vcs_strategy": "git",
+  "operation": "modify",
+  "title": "",
+  "body": "",
+  "draft": false,
+  "existing_pr_number": null,
+  "commit_message": "[area] short subject for this new commit"
+}
+```
+
+Rules:
+
+- `title` and `body` MUST be empty strings — the existing PR's description stays put.
+- `commit_message` is generated from the diff with the same `[area]` bracket convention as Shape 1, under 70 chars.
+- The skill MUST NOT call `/pr` for this shape.
 
 Exit after writing the action. Krust reads `$ACTIONS_DIR`, overwrites `target_repo`/`branch`, and runs `handle_submit`.
 
@@ -122,5 +156,5 @@ Exit after writing the action. Krust reads `$ACTIONS_DIR`, overwrites `target_re
 - **Exactly one `submit` action per invocation** — do not emit multiple action files.
 - **Write only to `$KRUST_OUT` and `$ACTIONS_DIR`** — no other filesystem writes.
 - **Do not call `bd close`, `krust bd-finish`, or push anything** — krust owns task lifecycle and publishing.
-- **Delegate to `/pr` for voice and formatting** — do not reimplement title or body rules here.
+- **Delegate to `/pr` for voice and formatting on the create path** — do not reimplement title or body rules here. Modify path skips `/pr`.
 - **Terminate on completion** — no interactive loops; krust drives any follow-up iterations.
