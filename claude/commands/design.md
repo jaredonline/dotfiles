@@ -20,7 +20,7 @@ The more the user front-loads, the less exploration you do and the faster you co
 |---|---|---|
 | 1. Create Beads task | No — main agent | Track work before starting |
 | 2. Understand brief | No — main agent | Needs user input |
-| 3. Exploration team (TeamCreate → AddTeammate ×3 → TeamDelete) | Yes — 3 teammates | Independent research with explicit team lifecycle |
+| 3. Parallel exploration via Agent ×3 | Yes — 3 agents in one message | Independent research, fire-and-forget |
 | 4. Synthesize | No — main agent | Combines findings into design |
 | 5. Spec interfaces | No — main agent | Depends on synthesis |
 | 6. Simplification review | No — 1 agent (clean-room) | Isolated from exploration context |
@@ -67,63 +67,41 @@ Use what you learn to:
 2. Write more targeted explorer prompts — tell explorers what principles to validate against.
 3. Inform synthesis — designs should align with stated principles unless the brief explicitly aims to change them.
 
-### 3. Spawn exploration team (parallel, team lifecycle)
+### 3. Spawn exploration agents (parallel)
 
-#### 3.1 Create team
-
-Generate a kebab-case `<project-slug>` (max 30 chars) from the design topic.
-
-```
-TeamCreate(team_name="design-<project-slug>")
-```
-
-#### 3.2 Spawn teammates (ALL in ONE message)
-
-Spawn ALL three teammates in ONE assistant message for true parallelism:
+Spawn ALL three explorers in ONE assistant message — multiple `Agent` tool calls in a single message run concurrently. Each is fire-and-forget: prompt in, single result message out, no lifecycle to manage.
 
 **Codebase Explorer:**
 ```
-AddTeammate(
-  team_name="design-<project-slug>",
-  name="codebase-explorer",
-  model="opus",
+Agent(
+  description="Codebase exploration",
+  subagent_type="Explore",
   prompt="Explore the existing codebase relevant to this design. Map: current architecture, existing interfaces, data flows, tests, and patterns used in this area. Return: structured summary with file paths, key types, and how things currently work. Focus on what's load-bearing vs. what's safe to change."
 )
 ```
 
 **Prior Art Explorer:**
 ```
-AddTeammate(
-  team_name="design-<project-slug>",
-  name="prior-art-explorer",
-  model="opus",
+Agent(
+  description="Prior art exploration",
+  subagent_type="Explore",
   prompt="Look for existing patterns in this codebase that solve similar problems. Find: related abstractions, conventions, error handling patterns, test patterns. Return: list of patterns with examples and file paths. The design should be consistent with established codebase conventions."
 )
 ```
 
 **Devil's Advocate:**
 ```
-AddTeammate(
-  team_name="design-<project-slug>",
-  name="devils-advocate",
-  model="opus",
+Agent(
+  description="Devil's advocate critique",
   prompt="Challenge the proposed approach. Consider: What could go wrong? What are the failure modes? Are there simpler alternatives? What's the maintenance burden? Where will this design break in 6 months? Return: ranked list of concerns with severity and suggested mitigations."
 )
 ```
 
-#### 3.3 Wait for all reports, then tear down
-
-After ALL three teammates have returned their findings:
-
-```
-TeamDelete(team_name="design-<project-slug>")
-```
-
-Do NOT advance to step 4 until every teammate has reported.
+Do NOT advance to step 4 until every agent has returned its result. The harness blocks the assistant turn on outstanding tool calls — you'll receive all three results before continuing.
 
 ### 4. Synthesize into design document
 
-Combine teammate findings with the user's brief. Weight findings flagged by 2+ teammates highest (consensus) and surface them first in the relevant Key Decisions row; integrate single-teammate findings after.
+Combine explorer findings with the user's brief. Weight findings flagged by 2+ explorers highest (consensus) and surface them first in the relevant Key Decisions row; integrate single-explorer findings after.
 
 Make decisions — don't present options. For each decision, briefly note why alternatives were rejected.
 
@@ -274,8 +252,8 @@ Before presenting the final document, verify:
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
 - [ ] ## Tracking section includes Beads task ID
 - [ ] `krust artifact designs <slug> <path>` was called with the final document path
-- [ ] Step 3 used `TeamCreate` and `TeamDelete` around the parallel teammate spawn (team lifecycle)
-- [ ] Synthesis (step 4) ran consensus detection and surfaced 2+-teammate findings first
+- [ ] Step 3 spawned all 3 explorers in a single assistant message via `Agent` (true parallelism, no team lifecycle)
+- [ ] Synthesis (step 4) ran consensus detection and surfaced 2+-explorer findings first
 - [ ] Simplifier output (step 6) uses Type / Location / Current State / Proposed Change / Rationale / Risk Assessment format
 
 If any check fails, fix it before presenting.
