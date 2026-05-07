@@ -20,6 +20,8 @@ The user provides text to rewrite via ARGUMENTS. If no arguments are provided, o
 
 Run `bd recall writing-voice` and store the full output. This is the canonical style source for all subsequent steps.
 
+Once the brief (input text from `$ARGUMENTS`, or under krust from `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'`) is in hand, your FIRST text response must be the brief echoed italicized on a single line: `*<brief>*`. If the brief contains newlines, replace each newline with `; ` (semicolon-space) before wrapping in asterisks. If the brief is empty, skip the echo entirely — do not emit `**` or `*<empty>*`. No preamble, no "Brief:" prefix, no trailing commentary.
+
 ### 2. Rewrite text
 
 Rewrite the input text following the writing-voice guidance. Apply all rules: punctuation, sentence structure, tone, vocabulary, and avoidance patterns. Hold the rewritten text internally for review.

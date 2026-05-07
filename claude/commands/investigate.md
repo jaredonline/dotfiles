@@ -29,6 +29,12 @@ If no question is provided, stop and ask the user for a question.
 Run `bd create --title="Investigate: [question]" --type=task --labels=<resolved-labels>` and store the returned task ID.
 Claim it: `bd update <id> --claim`.
 
+**Brief extraction**: Determine the brief for this invocation.
+- Standalone: the brief is `$ARGUMENTS`.
+- Krust mode (when invoked with a `bd_id`): `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'`.
+
+**Echo the brief**: After bd creation and brief extraction, if the brief is non-empty, your FIRST text response must be exactly `*<brief>*` — the brief italicized on a single line, with newlines collapsed to `; ` (semicolon-space) before wrapping in asterisks. No preamble, no trailing commentary. If the brief is empty, skip the echo entirely (do not emit `**` or `*<empty>*`).
+
 ### 2. Decompose question
 
 Break the question into 3-5 sub-questions. For each sub-question, identify:
@@ -128,7 +134,13 @@ Full list of all sources consulted, with dates where available.
 
 ## Tracking
 - Beads: <task-id> — closed
+
+## Brief
+
+> <brief, verbatim, each line prefixed with `> `>
 ```
+
+If the brief is empty, omit the `## Brief` section entirely.
 
 ## Rules
 

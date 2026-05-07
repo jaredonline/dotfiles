@@ -57,6 +57,17 @@ Every skill decomposes work into parallel units using the same pattern:
 
 **Why:** Claude works best in the first half of the context window. Instructions get fuzzy, earlier details get lost, and mistakes increase as context fills up.
 
+### Echo the Brief
+
+Skills that take a free-text brief (from `$ARGUMENTS` or `bd metadata` — `/explore`, `/design`, `/investigate`, etc.) must surface that brief in two places:
+
+- **Console**: echo the brief as the first text response, italicized, on a single line — `*<brief>*` with newlines collapsed to `; `.
+- **Artifact**: skills that produce a markdown artifact append a `## Brief` section after `## Tracking` (and `## Next Step` if present) and before any krust-managed `## Rounds of Feedback`. Format is a blockquote (`> `) with the brief preserved verbatim, newlines included.
+
+If the brief is empty, skip the echo and omit the `## Brief` section — its absence is the signal for autonomous-mode invocations from `dylan-*` / `krawn-*` wrappers. Path-based skills (taking a path, diff, or branch) are exempt. `feedback-*` skills preserve `## Brief` byte-for-byte during revision, same as `## Rounds of Feedback`.
+
+**Why:** The brief is the single source of truth for what the human asked for. Echoing it makes intent auditable in transcripts and lets downstream skills (and humans) recover the original ask without re-reading the parent's context.
+
 ### Protect Skill Quality as You Iterate
 
 Skills degrade when new features are appended rather than woven into existing structure. Every edit must preserve cohesion:

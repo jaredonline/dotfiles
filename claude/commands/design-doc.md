@@ -34,6 +34,14 @@ Claim it: `bd update <epic-id> --claim`.
 
 File child tasks under this epic as work is discovered throughout the process.
 
+**Echo the brief**: After the epic is created and the brief has been resolved (standalone: `$ARGUMENTS`; krust mode: `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'`), if the brief is non-empty, your FIRST text response in this skill must be exactly the brief italicized:
+
+```
+*<brief>*
+```
+
+Collapse newlines to `; ` before wrapping in asterisks so the echo is a single line. Output no preamble, no trailing commentary. If the brief is empty, skip the echo entirely.
+
 ### 2. Gather context (interactive)
 
 Ask the user clarifying questions to build understanding. Adapt based on what the brief already covers — skip topics the user has already addressed, add follow-ups when answers reveal complexity.
@@ -246,6 +254,12 @@ _Metadata_
 ### Next Steps
 
 Optionally run `/design` to create implementation-ready specs, then `/plan` to decompose into tasks.
+
+## Brief
+
+> <brief, verbatim, each line prefixed with `> `>
+
+Omit the `## Brief` section entirely if the brief is empty. Krust appends `## Rounds of Feedback` after this section at runtime.
 
 ## Rules
 

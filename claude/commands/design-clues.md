@@ -43,6 +43,8 @@ These rules govern every clue you propose and every validation you run. **Do not
 
 ## Step 1: Gather Context
 
+Extract the brief: standalone invocation uses `$ARGUMENTS`; krust mode uses `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'`. If the brief is non-empty, your **first text response** must be exactly `*<brief>*` on a single line — collapse any newlines to `; ` before wrapping in asterisks. No preamble, no trailing commentary. If empty, skip the echo entirely (do not emit `**` or `*<empty>*`). Then continue with context gathering below.
+
 Read whatever inputs are available. None are strictly required, but the more you have, the better the candidates.
 
 - **`guides/node-design.md`** — mandatory. The structural framework the Seven Rules rest on. Read it before generating anything.

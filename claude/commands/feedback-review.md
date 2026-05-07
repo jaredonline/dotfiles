@@ -26,6 +26,7 @@ After applying changes, verify these invariants and fix any violations:
 6. **ID stability**: IDs assigned on initial generation never change. When feedback removes a finding, its ID is NOT reused. New findings added by feedback get the next free number in their severity bucket (scan existing IDs, pick max + 1). Renumbering is PROHIBITED.
 7. **Approval state consistency**: frontmatter `approved_findings` is preserved verbatim unless feedback explicitly removes a finding whose ID is in the list — in which case drop from BOTH the list AND the body together. Body `> ✅ **Approved for resolution**` markers stay on findings that remain. The document must be self-consistent on exit.
 8. **Frontmatter preservation**: `name`, `beads_id`, `mode`, `dirty`, `head_sha`, `base_ref`, `pr_url`, `reviewed_at` are NEVER modified by feedback. `head_sha` in particular is the staleness signal — feedback does not refresh it. `approved_findings` is only modified consistently with body edits per invariant 7.
+9. **Preserve `## Brief` section**: If a top-level section titled exactly `## Brief` exists, preserve it byte-for-byte — the original brief stays the original brief; feedback is feedback, not a new brief. Do not edit, reformat, reorder, summarize, move, or remove any content within it. If `## Brief` is absent, do not add a placeholder.
 
 Do NOT skip these checks — they're the structural contract for review artifacts.
 

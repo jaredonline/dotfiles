@@ -43,6 +43,8 @@ bd_id=$(krust bd-start task "Explore: [topic]")
 
 If running under krust, the task inputs (topic, etc.) live in bd metadata — read via `bd show $bd_id --json` and extract from `.metadata.krust.brief`. Standalone, `[topic]` comes from the user's `$ARGUMENTS`.
 
+Once the brief is extracted, your FIRST text response must be the brief echoed verbatim, italicized on a single line: `*<brief>*`. If the brief contains newlines, replace each newline with `; ` (semicolon-space) before wrapping in asterisks. If the brief is empty, skip the echo entirely — do not emit `**` or `*<empty>*`. No preamble, no "Brief:" prefix, no trailing commentary.
+
 Skills do not run git directly — krust owns all git operations.
 
 You will reference `$bd_id` in the ## Tracking section of your final output.
@@ -168,7 +170,13 @@ The operational record of what was run during this exploration. Distinct from th
 
 ## Tracking
 - Beads: <task-id> — closed
+
+## Brief
+
+> <brief, verbatim, each line prefixed with `> `>
 ```
+
+If the brief is empty, omit the `## Brief` section entirely.
 
 ### 6. Self-validation
 

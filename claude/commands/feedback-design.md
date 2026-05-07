@@ -25,7 +25,7 @@ After applying changes, verify these invariants and fix any violations:
 5. **Invariants are concrete**: no vague goals — each invariant names a constraint the implementation must maintain.
 6. **Tracking preserved**: `## Tracking` section still lists the Beads task ID. Do not rewrite the task ID.
 7. **Frontmatter consistency**: preserve `beads_id` and any other frontmatter fields untouched.
-8. **Preserve `## Rounds of Feedback` section**: If a top-level section titled exactly `## Rounds of Feedback` exists at the end of the artifact, preserve it byte-for-byte. Do not edit, reformat, reorder, summarize, move, or remove any content within or after it. Krust will append the new round entry after you return; do not add a round entry yourself.
+8. **Preserve `## Brief` and `## Rounds of Feedback` sections**: If a top-level section titled exactly `## Brief` exists, preserve it byte-for-byte — the original brief stays the original brief; feedback is feedback, not a new brief. If `## Brief` is absent (empty-brief artifact), do not add a placeholder. If a top-level section titled exactly `## Rounds of Feedback` exists at the end of the artifact, preserve it byte-for-byte. For both sections: do not edit, reformat, reorder, summarize, move, or remove any content within them. Krust will append the new round entry after you return; do not add a round entry yourself.
 
 Do NOT skip these checks — they're the structural contract between /design and /implement.
 

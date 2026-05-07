@@ -62,9 +62,17 @@ bd_id=$(krust bd-start task "Situation: [conflict premise]")
 `krust bd-start` auto-detects mode: under krust (KRUST_BEADS_ID set) it prints the existing task ID; standalone it creates and claims a new task with project-resolved labels. Capture the output into `$bd_id` for subsequent `bd update --notes` calls.
 
 Read inputs:
-- Under krust, the conflict premise lives in bd metadata: `bd show $bd_id --json`, extract from `.metadata.krust.brief`.
-- Standalone, parse `$ARGUMENTS` for conflict premise, PC goals, and setting context.
+- Under krust, the conflict premise lives in bd metadata: `bd show $bd_id --json`, extract from `.metadata.krust.brief` (e.g. `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'`).
+- Standalone, parse `$ARGUMENTS` for conflict premise, PC goals, and setting context. The brief is `$ARGUMENTS`.
 - If no PC goals are provided, continue designing the situation but generate `## PC-Facing Opportunities` instead of `## PC Goal Paths`. Use `[NEEDS GM INPUT]` only where a goal-specific answer depends on unknown campaign intent.
+
+After extracting the brief, if it is non-empty, your FIRST text response in this run must be exactly the brief italicized — wrapped in single asterisks on one line, with newlines collapsed to `; ` before wrapping. No preamble, no trailing commentary:
+
+```
+*<brief>*
+```
+
+If the brief is empty, skip the echo entirely. Then continue with Step 2.
 
 ---
 
@@ -336,7 +344,13 @@ Five lines per faction: name, relative power, location, brief description, 1-2 l
 ## Default Timeline
 ## Lore Check
 ## Open Threads
+
+## Brief
+
+> {brief, verbatim, each line prefixed with `> `}
 ```
+
+Omit `## Brief` if the brief is empty. Krust appends `## Rounds of Feedback` at runtime — do not author it manually. Section ordering at the footer is: `## Open Threads` → `## Brief` → `## Rounds of Feedback` (krust-managed).
 
 ---
 

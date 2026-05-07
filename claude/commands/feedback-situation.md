@@ -34,7 +34,7 @@ After applying the changes, verify the following invariants and fix any violatio
 7. **Three-faction coverage**: At least one faction each in good, bad, and ugly
    roles.
 8. **Frontmatter consistency**: Preserve `beads_id` field.
-9. **Preserve `## Rounds of Feedback` section**: If a top-level section titled exactly `## Rounds of Feedback` exists at the end of the artifact, preserve it byte-for-byte. Do not edit, reformat, reorder, summarize, move, or remove any content within or after it. Krust will append the new round entry after you return; do not add a round entry yourself.
+9. **Preserve `## Brief` and `## Rounds of Feedback` sections**: If a top-level section titled exactly `## Brief` exists, preserve it byte-for-byte — the original brief stays the original brief; feedback is feedback, not a new brief. If `## Brief` is absent (empty-brief artifact), do not add a placeholder. If a top-level section titled exactly `## Rounds of Feedback` exists at the end of the artifact, preserve it byte-for-byte. For both sections: do not edit, reformat, reorder, summarize, move, or remove any content within them. Krust will append the new round entry after you return; do not add a round entry yourself.
 
 Do NOT skip these checks. The structural integrity of the situation document depends on them.
 

@@ -39,7 +39,9 @@ bd_id=$(krust bd-start task "Design: [topic]")
 
 `krust bd-start` auto-detects mode: under krust (KRUST_BEADS_ID set) it prints the existing task ID, standalone it creates and claims a new task with project-resolved labels. Capture the output into `$bd_id` for subsequent `bd update --notes` calls.
 
-If running under krust, the task inputs (brief, etc.) live in bd metadata — read via `bd show $bd_id --json` and extract from `.metadata.krust`. Standalone, `[topic]` comes from the user's `$ARGUMENTS`.
+If running under krust, the task inputs (brief, etc.) live in bd metadata — read via `bd show $bd_id --json` and extract from `.metadata.krust`. Standalone, `[topic]` comes from the user's `$ARGUMENTS`. The brief is `$ARGUMENTS` standalone, or `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'` under krust.
+
+Once the brief is extracted, if it is non-empty, your FIRST text response in this turn must be exactly the brief italicized — wrap it in single asterisks on a single line: `*<brief>*`. If the brief contains newlines, replace each newline with `; ` before wrapping. No preamble, no trailing commentary. If the brief is empty, skip the echo entirely (do not emit `**` or `*<empty>*`).
 
 Skills do not run git directly — krust owns all git operations.
 
@@ -238,7 +240,13 @@ Anything that needs human input before implementation.
 
 ## Next Step
 Run /plan to create the task graph for implementation.
+
+## Brief
+
+> <brief, verbatim, each line prefixed with `> `>
 ```
+
+Omit the `## Brief` section entirely if the brief is empty. Preserve the brief verbatim, including newlines — each line gets a `> ` prefix to form a markdown blockquote. Krust appends `## Rounds of Feedback` at runtime; the template does not need to mention it.
 
 ### 8. Self-validation
 
