@@ -26,10 +26,12 @@ In a greenfield project, use the `/kickoff` skill to bootstrap a project with ne
 
 ```sh
 cd ~/jaredonline/dotfiles
-./install.sh
+./install.sh [EXTRA_TREE...]
 ```
 
 Creates symlinks from your home directory to the repo. Existing files are backed up with a `.backup` suffix.
+
+Pass one or more extra dotfile trees to layer machine- or work-specific config on top of this repo. See [Extra Dotfile Trees](#extra-dotfile-trees) below.
 
 ## Structure
 
@@ -42,14 +44,33 @@ claude/           — Claude Code settings + custom commands (skills)
   commands/       — slash command skills (/explore, /design, etc.)
   settings.json   — Claude Code settings (model, plugins, env)
 krust/            — Rust CLI wrapper for Claude skills (see krust/README.md)
-local/            — GITIGNORED private/work-specific overrides
 ```
 
 ## Conventions
 
 - **New tool = new directory** — each tool's config lives in its own folder
-- **All configs support `local/` override** — machine-specific or work-specific settings go in `local/<tool>/`
+- **Layered config via extra trees** — machine- or work-specific settings live in a separate dotfile tree passed to `install.sh`
 - **Skills are the product** — iterate on `claude/commands/` like you'd iterate on code
+
+## Extra Dotfile Trees
+
+`install.sh` accepts additional dotfile trees as positional args:
+
+```sh
+./install.sh /path/to/work-dotfiles /path/to/other-tree
+```
+
+Each extra tree must expose a `merge.sh` at its root. `install.sh` resolves the tree to an absolute path, exports `EXTRA_DIR` (pointing at that path), and `source`s `$EXTRA_DIR/merge.sh`. Trees are processed in the order passed.
+
+Inside `merge.sh`:
+
+- `$EXTRA_DIR` — absolute path to the current extra tree
+- `$DOTFILES` — absolute path to this repo
+- `link_file <src> <dst>` — symlink helper; `<src>` may be absolute or relative to `$DOTFILES`
+- `merge_json <base> <override> <dst>` — `jq`-merge two JSON files; pass `""` for `<override>` to copy `<base>` unchanged
+- `merge_md <base> <override> <dst>` — concatenate two markdown files; pass `""` for `<override>` to copy `<base>` unchanged
+
+Non-existent trees or trees missing `merge.sh` log a warning and are skipped. With no args, `install.sh` performs only the OSS-shareable setup.
 
 ## How I Work with AI
 
@@ -199,14 +220,3 @@ Eight weeks in, one command triggers design through review. I review one design 
 
 My dotfiles repo is the product. It defines how agents behave, and it gets better every time I fix a skill.
 
-## Private Overrides (`local/`)
-
-The `local/` directory is gitignored and holds machine-specific or work-specific config:
-
-- `local/zsh/.zshrc.local` — sourced at the end of `.zshrc`
-- `local/zsh/.zshprofile.local` — sourced at the end of `.zshprofile`
-- `local/git/.gitconfig.local` — included by `.gitconfig` via `[include]`
-- `local/claude/settings.json` — Claude Code overrides (merged via `jq`)
-- `local/install.sh` — additional symlink mappings (sourced by main `install.sh`)
-
-To set up local overrides, create the files in `local/` and re-run `./install.sh`.

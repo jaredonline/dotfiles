@@ -3,8 +3,20 @@ set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "$0")" && pwd)"
 
+# Resolve a path argument: absolute path passes through, relative path
+# resolves against $DOTFILES for backward compatibility with internal callers.
+_resolve_path() {
+  local p="$1"
+  if [[ "$p" == /* ]]; then
+    echo "$p"
+  else
+    echo "$DOTFILES/$p"
+  fi
+}
+
 link_file() {
-  local src="$DOTFILES/$1"
+  local src
+  src="$(_resolve_path "$1")"
   local dst="$2"
 
   # Create parent directory if needed
@@ -21,9 +33,15 @@ link_file() {
 }
 
 merge_json() {
-  local base="$DOTFILES/$1"
-  local override="$DOTFILES/$2"
+  local base
+  base="$(_resolve_path "$1")"
+  local override="$2"
   local dst="$3"
+
+  # Resolve override only if non-empty
+  if [[ -n "$override" ]]; then
+    override="$(_resolve_path "$override")"
+  fi
 
   mkdir -p "$(dirname "$dst")"
 
@@ -35,19 +53,24 @@ merge_json() {
     mv "$dst" "${dst}.backup"
   fi
 
-  if [[ -f "$override" ]]; then
+  if [[ -n "$override" && -f "$override" ]]; then
     jq -s '.[0] * .[1]' "$base" "$override" > "$dst"
     echo "Merged $base + $override → $dst"
   else
     cp "$base" "$dst"
-    echo "Copied $base → $dst (no local override)"
+    echo "Copied $base → $dst (no override)"
   fi
 }
 
 merge_md() {
-  local base="$DOTFILES/$1"
-  local override="$DOTFILES/$2"
+  local base
+  base="$(_resolve_path "$1")"
+  local override="$2"
   local dst="$3"
+
+  if [[ -n "$override" ]]; then
+    override="$(_resolve_path "$override")"
+  fi
 
   mkdir -p "$(dirname "$dst")"
 
@@ -59,12 +82,12 @@ merge_md() {
     mv "$dst" "${dst}.backup"
   fi
 
-  if [[ -f "$override" ]]; then
+  if [[ -n "$override" && -f "$override" ]]; then
     { cat "$base"; echo; cat "$override"; } > "$dst"
     echo "Merged $base + $override → $dst"
   else
     cp "$base" "$dst"
-    echo "Copied $base → $dst (no local override)"
+    echo "Copied $base → $dst (no override)"
   fi
 }
 
@@ -76,8 +99,8 @@ link_file "git/.gitconfig"          "$HOME/.gitconfig"
 link_file "tools/.gemrc"            "$HOME/.gemrc"
 link_file "tools/.terraformrc"      "$HOME/.terraformrc"
 link_file "gh/config.yml"           "$HOME/.config/gh/config.yml"
-merge_json "claude/settings.json" "local/claude/settings.json" "$HOME/.claude/settings.json"
-merge_md "CLAUDE.md" "local/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+merge_json "$DOTFILES/claude/settings.json" "" "$HOME/.claude/settings.json"
+merge_md   "$DOTFILES/CLAUDE.md"            "" "$HOME/.claude/CLAUDE.md"
 # Claude Code skills
 for cmd in "$DOTFILES"/claude/commands/*.md; do
   link_file "claude/commands/$(basename "$cmd")" "$HOME/.claude/commands/$(basename "$cmd")"
@@ -166,12 +189,20 @@ build_dashboard
 build_krust
 setup_zellij
 
-# Krust config
+# Krust config dir (extra trees populate the config file)
 mkdir -p "$HOME/.krust"
-link_file "local/krust/config.toml" "$HOME/.krust/config.toml"
 
-# Source local/private install if present
-[[ -f "$DOTFILES/local/install.sh" ]] && source "$DOTFILES/local/install.sh"
+# Source any extra dotfile trees passed as args. Each tree must expose
+# merge.sh at its root; helpers above are in scope, and $EXTRA_DIR points
+# at the tree's absolute path.
+for extra in "$@"; do
+  abs="$(cd "$extra" 2>/dev/null && pwd)" || { echo "WARN: extra tree '$extra' not found — skipping"; continue; }
+  if [[ ! -f "$abs/merge.sh" ]]; then
+    echo "WARN: $abs/merge.sh not found — skipping"
+    continue
+  fi
+  EXTRA_DIR="$abs" source "$abs/merge.sh"
+done
 
 echo ""
 echo "Done! You may need to restart your shell."
