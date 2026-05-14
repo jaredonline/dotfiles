@@ -131,14 +131,16 @@ _gt_yargs_completions()
 compdef _gt_yargs_completions gt
 ###-end-gt-completions-###
 
-eval "$(rbenv init -)"
+command -v rbenv >/dev/null 2>&1 && eval "$(rbenv init -)"
 export RACK_ENV=development
 
 export PATH=${PATH}:`go env GOPATH`/bin
 
 source ~/.zshprofile
 
-eval "$(brew shellenv)"
+if [[ "$OSTYPE" == darwin* ]] && command -v brew >/dev/null 2>&1; then
+  eval "$(brew shellenv)"
+fi
 export PATH="$HOME/.local/bin:$PATH"
 
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
