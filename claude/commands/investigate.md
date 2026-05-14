@@ -33,8 +33,6 @@ Claim it: `bd update <id> --claim`.
 - Standalone: the brief is `$ARGUMENTS`.
 - Krust mode (when invoked with a `bd_id`): `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'`.
 
-**Echo the brief**: After bd creation and brief extraction, if the brief is non-empty, your FIRST text response must be exactly `*<brief>*` — the brief italicized on a single line, with newlines collapsed to `; ` (semicolon-space) before wrapping in asterisks. No preamble, no trailing commentary. If the brief is empty, skip the echo entirely (do not emit `**` or `*<empty>*`).
-
 ### 2. Decompose question
 
 Break the question into 3-5 sub-questions. For each sub-question, identify:

@@ -59,12 +59,12 @@ Every skill decomposes work into parallel units using the same pattern:
 
 ### Echo the Brief
 
-Skills that take a free-text brief (from `$ARGUMENTS` or `bd metadata` — `/explore`, `/design`, `/investigate`, etc.) must surface that brief in two places:
+The brief surfaces in two places:
 
-- **Console**: echo the brief as the first text response, italicized, on a single line — `*<brief>*` with newlines collapsed to `; `.
+- **Console**: krust prints the brief italicized on a single line before spawning the agent, so the brief survives any subsequent failure into the user's terminal scrollback. Skills no longer echo to console themselves.
 - **Artifact**: skills that produce a markdown artifact append a `## Brief` section after `## Tracking` (and `## Next Step` if present) and before any krust-managed `## Rounds of Feedback`. Format is a blockquote (`> `) with the brief preserved verbatim, newlines included.
 
-If the brief is empty, skip the echo and omit the `## Brief` section — its absence is the signal for autonomous-mode invocations from `dylan-*` / `krawn-*` wrappers. Path-based skills (taking a path, diff, or branch) are exempt. `feedback-*` skills preserve `## Brief` byte-for-byte during revision, same as `## Rounds of Feedback`.
+If the brief is empty, krust skips the console echo and skills omit `## Brief` — its absence is the signal for autonomous-mode invocations from `dylan-*` / `krawn-*` wrappers. Path-based skills (taking a path, diff, or branch) are exempt. `feedback-*` skills preserve `## Brief` byte-for-byte during revision, same as `## Rounds of Feedback`.
 
 **Why:** The brief is the single source of truth for what the human asked for. Echoing it makes intent auditable in transcripts and lets downstream skills (and humans) recover the original ask without re-reading the parent's context.
 

@@ -66,14 +66,6 @@ Read inputs:
 - Standalone, parse `$ARGUMENTS` for conflict premise, PC goals, and setting context. The brief is `$ARGUMENTS`.
 - If no PC goals are provided, continue designing the situation but generate `## PC-Facing Opportunities` instead of `## PC Goal Paths`. Use `[NEEDS GM INPUT]` only where a goal-specific answer depends on unknown campaign intent.
 
-After extracting the brief, if it is non-empty, your FIRST text response in this run must be exactly the brief italicized — wrapped in single asterisks on one line, with newlines collapsed to `; ` before wrapping. No preamble, no trailing commentary:
-
-```
-*<brief>*
-```
-
-If the brief is empty, skip the echo entirely. Then continue with Step 2.
-
 ---
 
 ## Step 2: Define Conflict + Faction Sketches

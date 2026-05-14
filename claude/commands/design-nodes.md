@@ -76,8 +76,6 @@ Read inputs in this order:
 
 - **Brief.** Under krust, scenario brief, situation doc, known nodes, `campaign_dir`, and `actions_dir` live in bd metadata: `bd show $bd_id --json`, then extract from `.metadata.krust` (`brief`, `campaign_dir`, `inputs.situation`, `inputs.nodes`, `actions_dir`). The output path is `$KRUST_OUT`. Standalone, parse `$ARGUMENTS` for scenario brief, situation doc, and known nodes.
 
-  Once the brief is in hand, **echo it as your first text response** — single line, italicized, exactly `*<brief>*`. Collapse newlines to `; ` before wrapping in asterisks. No preamble, no trailing commentary. If the brief is empty, skip the echo entirely.
-
 - **Situation doc.** Default `<world>/<season>/situation.md` if not specified.
 
 - **Override chain** (most specific wins, missing files skipped):

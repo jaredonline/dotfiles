@@ -41,8 +41,6 @@ bd_id=$(krust bd-start task "Design: [topic]")
 
 If running under krust, the task inputs (brief, etc.) live in bd metadata — read via `bd show $bd_id --json` and extract from `.metadata.krust`. Standalone, `[topic]` comes from the user's `$ARGUMENTS`. The brief is `$ARGUMENTS` standalone, or `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'` under krust.
 
-Once the brief is extracted, if it is non-empty, your FIRST text response in this turn must be exactly the brief italicized — wrap it in single asterisks on a single line: `*<brief>*`. If the brief contains newlines, replace each newline with `; ` before wrapping. No preamble, no trailing commentary. If the brief is empty, skip the echo entirely (do not emit `**` or `*<empty>*`).
-
 Skills do not run git directly — krust owns all git operations.
 
 You will reference `$bd_id` in the ## Tracking section of your final output.
