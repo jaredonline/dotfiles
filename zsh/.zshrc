@@ -144,3 +144,6 @@ fi
 export PATH="$HOME/.local/bin:$PATH"
 
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
+# Coder devbox: GITHUB_TOKEN shadows the gh credential helper.
+unset GITHUB_TOKEN

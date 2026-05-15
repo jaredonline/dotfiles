@@ -18,3 +18,5 @@
 	role = maintainer
 [core]
 	fsmonitor = false
+[url "git@github.com:figma/"]
+	insteadOf = https://github.com/figma/
