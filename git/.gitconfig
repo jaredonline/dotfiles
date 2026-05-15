@@ -18,5 +18,9 @@
 	role = maintainer
 [core]
 	fsmonitor = false
-[url "git@github.com:figma/"]
-	insteadOf = https://github.com/figma/
+# figma-org HTTPS→SSH rewrite is conditionally installed by
+# figma/dotfiles/users/jmcfarland/install.sh into the file below.
+# Present on local macOS, absent on Coder workspaces (where coder gitssh
+# can't authenticate to GitHub with the workspace key).
+[include]
+	path = ~/.config/git/figma.conf
