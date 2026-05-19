@@ -178,14 +178,21 @@ Write the design document to a working file. Under krust the wrapper pre-compute
 Then emit the artifact and (optionally) archive a consumed exploration:
 
 ```bash
-# 1. Declare the final slug and hand the artifact to krust.
-krust artifact designs <slug> <path-you-wrote-to>
+# 1. Declare the desired slug and hand the artifact to krust. The resolved slug
+#    may differ from the input if the input collided (auto-bumped to -v2..-v5).
+result=$(krust artifact designs "$slug" "$draft_path")
+final_slug=$(echo "$result" | jq -r .slug)
+
+if [ "$final_slug" != "$slug" ]; then
+  echo "Slug collided; resolved to $final_slug"
+fi
 
 # 2. If this design was informed by an exploration in $COCKPIT_DIR/state/explorations/, archive it.
-krust archive explorations <exploration-file>.md "finished: <slug>"
+#    Use the resolved slug so the archive reason matches the final design filename.
+krust archive explorations "$exploration_file" "finished: $final_slug"
 ```
 
-`<slug>` is a kebab-case version of the feature/system name (max 50 chars). Under krust, `krust artifact` emits an action JSON that the wrapper consumes to rename/commit the file; standalone, it writes the file to `$COCKPIT_DIR/state/designs/<slug>.md` and commits+pushes directly. Either way — same prose.
+`<slug>` is a kebab-case version of the feature/system name (max 50 chars). Under krust, `krust artifact` emits an action JSON that the wrapper consumes to rename/commit the file; standalone, it writes the file to `$COCKPIT_DIR/state/designs/<slug>.md` and commits+pushes directly. Either way — same prose, and either way `krust artifact` prints a JSON line on stdout with the resolved `slug` and `path`.
 
 Before writing the ## Tracking section, close out the beads task:
 
@@ -257,7 +264,7 @@ Before presenting the final document, verify:
 - [ ] Invariants section lists concrete constraints, not vague goals
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
 - [ ] ## Tracking section includes Beads task ID
-- [ ] `krust artifact designs <slug> <path>` was called with the final document path
+- [ ] `krust artifact designs "$slug" "$draft_path"` was called with the final document path, and the resolved slug was used in any subsequent `krust archive` call
 - [ ] Step 3 spawned all 3 explorers in a single assistant message via `Agent` (true parallelism, no team lifecycle)
 - [ ] Synthesis (step 4) ran consensus detection and surfaced 2+-explorer findings first
 - [ ] Simplifier output (step 6) uses Type / Location / Current State / Proposed Change / Rationale / Risk Assessment format

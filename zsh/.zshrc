@@ -147,3 +147,14 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Coder devbox: GITHUB_TOKEN shadows the gh credential helper.
 unset GITHUB_TOKEN
+
+# Scrub leftover mouse-reporting state after every ssh exit. Zellij on the
+# remote enables SGR mouse modes; if the ssh connection dies before zellij
+# can send the disable sequences, iTerm2 stays stuck reporting every mouse
+# move as escape gibberish.
+ssh() {
+  command ssh "$@"
+  local rc=$?
+  printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?25h' >/dev/tty
+  return $rc
+}

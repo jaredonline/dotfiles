@@ -548,21 +548,26 @@ Lore-check produces the standard `## Lore Check` section appended to the doc. If
 
 **File naming:** When running under krust ($KRUST_OUT is set), write the output file to `$KRUST_OUT`. Do not use a user-suggested filename — the harness requires this exact path for completion detection.
 
-1. Hand the artifact to krust:
+1. Hand the artifact to krust and capture the resolved slug:
 
    ```bash
-   krust artifact nodes <slug> <path-you-wrote-to>
+   result=$(krust artifact nodes "$slug" "$draft_path")
+   final_slug=$(echo "$result" | jq -r .slug)
+
+   if [ "$final_slug" != "$slug" ]; then
+     echo "Slug collided; resolved to $final_slug"
+   fi
    ```
 
-   `<slug>` is the kebab-case scenario identifier (e.g. `thornwall-disappearances`). Under krust the wrapper uses the slug to canonicalize the artifact path; standalone it writes to `$COCKPIT_DIR/state/nodes/<slug>.md` and commits+pushes directly.
+   `<slug>` is the kebab-case scenario identifier (e.g. `thornwall-disappearances`). Under krust the wrapper uses the slug to canonicalize the artifact path; standalone it writes to `$COCKPIT_DIR/state/nodes/<slug>.md` and commits+pushes directly. `krust artifact` prints a JSON line on stdout with the resolved `slug` and `path` — the resolved slug may differ from the input if there was a collision (auto-bumped to `-v2`..`-v5`).
 
-2. Append a line to the campaign INDEX.md via an action:
+2. Append a line to the campaign INDEX.md via an action, using the resolved slug so the link matches the actual artifact filename:
 
    ```bash
-   echo '{"type": "index_append", "path": "<campaign_dir>/designs/INDEX.md", "line": "- [<slug>](<slug>.md) — <title>"}' > "$ACTIONS_DIR/index-append.json"
+   echo "{\"type\": \"index_append\", \"path\": \"$campaign_dir/designs/INDEX.md\", \"line\": \"- [$final_slug]($final_slug.md) — $title\"}" > "$ACTIONS_DIR/index-append.json"
    ```
 
-   `<campaign_dir>` and `<title>` come from bd metadata (read earlier in Step 1a).
+   `$campaign_dir` and `$title` come from bd metadata (read earlier in Step 1a).
 
 3. Close the bd task:
 

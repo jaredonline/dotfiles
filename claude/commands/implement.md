@@ -136,11 +136,7 @@ If any check fails, fix it before reporting.
 
 ### 7. Archive consumed design
 
-If the design document lives in `$COCKPIT_DIR/state/designs/`, archive it:
-```bash
-krust archive designs <design-file>.md "implemented: <slug>"
-```
-If the design wasn't from the cockpit, skip this step.
+If the design document lives in `$COCKPIT_DIR/state/designs/`, you'll archive it in Step 8 — after `krust artifact implementations` runs, so the archive reason can use the resolved implementation slug (which may differ from the input slug if a collision was auto-bumped to `-v2`..`-v5`). If the design wasn't from the cockpit, no archive is needed.
 
 ### 8. Close tasks and report
 
@@ -178,12 +174,24 @@ Use the Write tool to save the report as a file at `$KRUST_OUT` (if set) or `/tm
 Then run these commands via Bash:
 
 ```bash
-krust artifact implementations <slug> <path-written-to>
-krust archive designs <design-file>.md "implemented"
+# Emit the implementation artifact and capture the resolved slug. The resolved
+# slug may differ from the input if there was a collision (auto-bumped to -v2..-v5).
+result=$(krust artifact implementations "$slug" "$report_path")
+final_slug=$(echo "$result" | jq -r .slug)
+
+if [ "$final_slug" != "$slug" ]; then
+  echo "Slug collided; resolved to $final_slug"
+fi
+
+# Archive the consumed design (Step 7) using the resolved implementation slug, so
+# the archive reason matches the actual implementation-report filename. Skip if
+# the design wasn't in $COCKPIT_DIR/state/designs/.
+krust archive designs "$design_file" "implemented: $final_slug"
+
 krust bd-finish "$bd_id"
 ```
 
-`krust artifact` declares the report as an output artifact. `krust bd-finish` closes the orchestration task (no-op under krust — the wrapper closes it on approval).
+`krust artifact` declares the report as an output artifact and prints a JSON line on stdout with the resolved `slug` and `path`. `krust bd-finish` closes the orchestration task (no-op under krust — the wrapper closes it on approval).
 
 ## Rules
 
