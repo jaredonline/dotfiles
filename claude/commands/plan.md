@@ -185,7 +185,7 @@ If the design doc came from an exploration or design file, emit archive action t
   "type": "archive",
   "kind": "designs",
   "file": "<design-filename>",
-  "reason": "finished: plans-<slug>"
+  "reason": "finished: <slug>"
 }
 ```
 
