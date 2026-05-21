@@ -24,8 +24,9 @@ The more the user front-loads, the less exploration you do and the faster you co
 | 4. Synthesize | No — main agent | Combines findings into design |
 | 5. Spec interfaces | No — main agent | Depends on synthesis |
 | 6. Simplification review | No — 1 agent (clean-room) | Isolated from exploration context |
-| 7. Output | No — main agent | Formats final document |
-| 8. Self-validation | No — main agent | Checks output completeness |
+| 7. Output | No — main agent | Writes the document |
+| 8. Emit the artifact (REQUIRED) | No — main agent | Hands the file to krust |
+| 9. Self-validation | No — main agent | Final audit |
 
 ## Process
 
@@ -173,34 +174,7 @@ For each recommendation: ACCEPT, REJECT (with reason), or MODIFY. Apply accepted
 
 ### 7. Output
 
-Write the design document to a working file. Under krust the wrapper pre-computed `$KRUST_OUT` as a starting path; you may write to `$KRUST_OUT` directly OR to a temp path of your choice — the harness handles relocation via the slug you declare in the next step. Standalone, write anywhere (e.g. `/tmp/design-draft.md`).
-
-Then emit the artifact and (optionally) archive a consumed exploration:
-
-```bash
-# 1. Declare the desired slug and hand the artifact to krust. The resolved slug
-#    may differ from the input if the input collided (auto-bumped to -v2..-v5).
-result=$(krust artifact designs "$slug" "$draft_path")
-final_slug=$(echo "$result" | jq -r .slug)
-
-if [ "$final_slug" != "$slug" ]; then
-  echo "Slug collided; resolved to $final_slug"
-fi
-
-# 2. If this design was informed by an exploration in $COCKPIT_DIR/state/explorations/, archive it.
-#    Use the resolved slug so the archive reason matches the final design filename.
-krust archive explorations "$exploration_file" "finished: $final_slug"
-```
-
-`<slug>` is a kebab-case version of the feature/system name (max 50 chars). Under krust, `krust artifact` emits an action JSON that the wrapper consumes to rename/commit the file; standalone, it writes the file to `$COCKPIT_DIR/state/designs/<slug>.md` and commits+pushes directly. Either way — same prose, and either way `krust artifact` prints a JSON line on stdout with the resolved `slug` and `path`.
-
-Before writing the ## Tracking section, close out the beads task:
-
-```bash
-krust bd-finish "$bd_id"
-```
-
-`krust bd-finish` is a no-op under krust (the wrapper closes the task on approval) and closes the bd task directly when standalone.
+Write the design document to a working file. Under krust the wrapper pre-computed `$KRUST_OUT` as a starting path; you may write to `$KRUST_OUT` directly OR to a temp path of your choice — the harness handles relocation via the slug you declare in Step 8. Standalone, write anywhere (e.g. `/tmp/design-draft.md`).
 
 Produce a markdown document with these sections:
 
@@ -253,10 +227,37 @@ Run /plan to create the task graph for implementation.
 
 Omit the `## Brief` section entirely if the brief is empty. Preserve the brief verbatim, including newlines — each line gets a `> ` prefix to form a markdown blockquote. Krust appends `## Rounds of Feedback` at runtime; the template does not need to mention it.
 
-### 8. Self-validation
+### 8. Emit the artifact (REQUIRED)
+
+After writing the document, run these two commands in order. Do not exit the turn before both succeed.
+
+```bash
+# 1. Declare the desired slug and hand the artifact to krust. The resolved slug
+#    may differ from the input if the input collided (auto-bumped to -v2..-v5).
+result=$(krust artifact designs "$slug" "$draft_path")
+final_slug=$(echo "$result" | jq -r .slug)
+
+if [ "$final_slug" != "$slug" ]; then
+  echo "Slug collided; resolved to $final_slug"
+fi
+
+# 2. If this design was informed by an exploration in $COCKPIT_DIR/state/explorations/, archive it.
+#    Use the resolved slug so the archive reason matches the final design filename.
+krust archive explorations "$exploration_file" "finished: $final_slug"
+```
+
+```bash
+krust bd-finish "$bd_id"
+```
+
+`<slug>` is a kebab-case version of the feature/system name (max 50 chars). Under krust, `krust artifact` emits an action JSON the wrapper consumes; standalone, it writes directly to `$COCKPIT_DIR/state/designs/<slug>.md` and commits. `krust bd-finish` is a no-op under krust and closes the bd task directly when standalone.
+
+### 9. Self-validation
 
 Before presenting the final document, verify:
 
+- [ ] `krust artifact designs "$slug" "$draft_path"` was called with the final document path, and the resolved slug was used in any subsequent `krust archive` call
+- [ ] `krust bd-finish "$bd_id"` was called
 - [ ] Every section in the output template has content (or an explicit "N/A — [reason]")
 - [ ] All interfaces have full signatures with types, parameters, and error cases
 - [ ] Key Decisions table has at least one rejected alternative per decision
@@ -264,7 +265,6 @@ Before presenting the final document, verify:
 - [ ] Invariants section lists concrete constraints, not vague goals
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
 - [ ] ## Tracking section includes Beads task ID
-- [ ] `krust artifact designs "$slug" "$draft_path"` was called with the final document path, and the resolved slug was used in any subsequent `krust archive` call
 - [ ] Step 3 spawned all 3 explorers in a single assistant message via `Agent` (true parallelism, no team lifecycle)
 - [ ] Synthesis (step 4) ran consensus detection and surfaced 2+-explorer findings first
 - [ ] Simplifier output (step 6) uses Type / Location / Current State / Proposed Change / Rationale / Risk Assessment format
