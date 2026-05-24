@@ -35,7 +35,32 @@ These rules govern every clue you propose and every validation you run. **Do not
 
 5. **Surface variety.** Within a node, the outbound clues should come from *different surfaces / modes of player engagement*: testimony (NPC asked), overheard (ambient gossip), look (environmental fixture), handle (physical object), document (paper / log / register), found-on-body (where bodies exist). Three NPCs all gossiping is one surface; three modes opens different player styles into the investigation.
 
-6. **Stand out.** Clues must visually grab the player when they're in the room. Subtle ambient detail and quiet bartender memory don't land — clues need to be sticky enough that PCs notice and engage on their own initiative.
+6. **Player-perspective discoverability.** Imagine the node from the player's perspective. Given the lead that brought them here and the kind of place this is, what actions would they *reasonably* take? The clue must have **≥35% probability** of being uncovered by those actions.
+
+   The math: with 3 outbound clues at ~35% each, the chance ≥1 lands is ~72%. The Alexandrian three-clue redundancy is doing the work — but only if every individual clue clears the floor. A clue at 5% (the player has to ask the right oblique question) is buried even if you have three of them.
+
+   Different node types invite different player actions, and clue placement must match:
+
+   - **Public / social** (tavern, market, festival) → engage with what's happening, talk to NPCs, eavesdrop. Foregrounded events / loud NPCs / prominent objects work.
+   - **Private search** (apartment, office, hideout PCs got an address for) → methodical searching. Hidden placement is fine — body in the freezer, ledger taped under a desk, burner in the toilet tank.
+   - **Combat** (ambush, monster lair) → fight, then loot bodies and check the field. Clues live on bodies, in dropped gear, in the tactical environment.
+   - **Wilderness / travel** (road, forest, river) → scan, track, camp, navigate. Tracks, environmental signs, NPC encounters work.
+   - **Restricted** (vault, archive, prison) → access via sneak, lockpick, bribe, persuasion. Clue placement matches what the access mode reveals.
+   - **NPC-led** (audience chamber, throne room, salon) → negotiate, observe behavior. Clues are tells, slip-ups, displayed objects.
+
+   This is not exhaustive — it's an aid. The rule is the test: *given how a real player would engage this node, does this clue clear ~35%?*
+
+   **Examples passing the test:**
+   - Tavern, foregrounded: porter at the bar ranting about a stiff → players hear it via natural socializing (~80%). ✓
+   - Apartment-with-address, hidden: body in the freezer → methodical search uncovers (~70%). ✓
+   - Combat aftermath: a maker's mark on a recovered weapon → standard loot inspection (~60%). ✓
+
+   **Examples failing the test:**
+   - Tavern: tab register in a back drawer → players ask about it only if specifically prompted (~5%). ✗
+   - Apartment-with-no-address-lead: body in the freezer → why are PCs searching here? (~10% — no reason to look). ✗
+   - Wilderness: a tiny carving on a tree trunk → only a player who Search-checks each tree finds it (~5%). ✗
+
+   When in doubt, ask: would I, sitting at a table playing a competent investigator, take the action that finds this clue at least ~1-in-3 of the time?
 
 7. **Faction byproducts.** Clues come from what NPCs / factions were actually doing — not placed for navigation. (Per `guides/node-design.md` §9.) If the trace doesn't have an in-fiction reason to be there, it's wrong. Ask: *what was this person doing at this place at that time, and what would they accidentally leave?*
 
@@ -90,7 +115,11 @@ For each candidate:
 
 2. **Pick a surface** that's distinct from existing surfaces at the source node (rule 5). Surfaces: testimony / overheard / look / handle / document / found-on-body.
 
-3. **Make it stand out** (rule 6). Specific, vivid, hard to miss when PCs are in the room. Avoid background ambience.
+3. **Run the player-perspective test** (rule 6). Imagine a player at the table arriving at this node, given the lead that brought them here. What actions would they reasonably take? Does the clue's placement intersect those actions with at least ~35% probability?
+   - If the node invites socializing (tavern, market) and the clue is buried in scenery, fail — replace with an active event or prominent object.
+   - If the node invites systematic searching (apartment, office) and the clue is too prominent to be plausible, fail — find a realistic placement that a search uncovers.
+   - If the node invites combat, the clue should live in the loot or tactical environment a fighter would inspect.
+   - When in doubt, name the actions a competent player would take and ask whether one of them finds this clue at least 1-in-3 times.
 
 4. **Make it node-specific** (rule 1). The clue must name or strongly imply the *specific* destination, not "somewhere in [city]."
 
@@ -113,7 +142,7 @@ For each candidate clue, run the seven rules as an explicit checklist. Show this
 | 3 | Direction | Is the target's content delivered AT the source? (Should be NO.) | ✓ / ✗ / note |
 | 4 | Hook | Does the clue tie to an active PC investigation thread? | ✓ / ✗ / note |
 | 5 | Surface variety | Is this surface distinct from others at this node? | ✓ / ✗ / note |
-| 6 | Stand out | Is the clue visually / narratively sticky? | ✓ / ✗ / note |
+| 6 | Player-perspective discoverable | Given how a player would naturally engage this node, would the actions they'd take uncover this clue at ≥35% probability? | ✓ / ✗ / note |
 | 7 | Faction byproduct | Does the clue have a cited in-fiction NPC origin? | ✓ / ✗ / note |
 
 **Any FAIL means revise or reject.** **Any NOTE (partial concern) means surface it to the GM** — they may accept the trade-off or push back.
@@ -165,3 +194,5 @@ If the GM wants to **persist** the locked clues, ask where: a notes file in the 
 - **Never drift into scenario design.** This skill works WITHIN an existing graph. If the GM wants to add nodes or restructure tiers, redirect to `/design-nodes`.
 - **Always show the validation table** — the GM has explicitly asked for visible rule-checking. Do not collapse it into implicit "trust me" generation.
 - **Always cite the in-fiction origin** for every candidate. If you cannot, the candidate violates rule 7.
+- **Never place a clue below the ~35% discoverability floor.** If the actions a reasonable player would take at this node have less than ~1-in-3 chance of surfacing the clue, redesign the placement. (Three clues at 35% each clear the aggregate at ~72%; below 35%, the redundancy doesn't save you.)
+- **Never write GM dialogue / establishing-description scripts.** A strong clue stands on its own — its design carries the foregrounding without a sample script. If you feel the need to author a GM line to prove the clue lands, the clue isn't strong enough yet.

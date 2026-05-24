@@ -158,3 +158,4 @@ ssh() {
   printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?25h' >/dev/tty
   return $rc
 }
+export FASTEMBED_CACHE_DIR="$HOME/.runewright/.cache"
