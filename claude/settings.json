@@ -40,6 +40,18 @@
         ]
       }
     ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$KRUST_ARTIFACT_TYPE\" ] && command -v krust >/dev/null && krust artifact-check; exit 0",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash(bd *)",

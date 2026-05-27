@@ -70,7 +70,7 @@ Use what you learn to:
 
 ### 3. Spawn exploration agents (parallel)
 
-Spawn ALL three explorers in ONE assistant message — multiple `Agent` tool calls in a single message run concurrently. Each is fire-and-forget: prompt in, single result message out, no lifecycle to manage.
+Spawn ALL 3 explorers in ONE assistant message using the `Agent` tool. Each is a synchronous, blocking call — multiple `Agent` tool uses in a single message run concurrently and the harness blocks the turn until every `tool_result` returns. **Do not set `run_in_background: true`. Do not use `TeamCreate` or any team-lifecycle tools** — async/teams semantics cause sub-agent completions to arrive as `task_notification` events that the lead can narrate and end its turn on without writing the artifact.
 
 **Codebase Explorer:**
 ```

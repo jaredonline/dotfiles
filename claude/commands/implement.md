@@ -113,7 +113,7 @@ For each ready task (no unresolved deps), spawn a worker:
 >   ```
 >   Do not create beads tasks yourself — the orchestrator will file them
 
-Spawn ALL ready workers in ONE message.
+Spawn ALL ready workers in ONE assistant message using the `Agent` tool. Each is a synchronous, blocking call — multiple `Agent` tool uses in a single message run concurrently and the harness blocks the turn until every `tool_result` returns. **Do not set `run_in_background: true`. Do not use `TeamCreate` or any team-lifecycle tools** — async/teams semantics cause sub-agent completions to arrive as `task_notification` events that the lead can narrate and end its turn on without writing the artifact.
 
 For tasks with unresolved deps: wait for blocking workers to complete, then spawn the next wave.
 

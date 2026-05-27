@@ -59,7 +59,7 @@ Identify the key questions to answer:
 
 ### 3. Spawn topic explorers (parallel)
 
-Spawn ALL explorers in ONE message. Each gets a focused area:
+Spawn ALL 5 explorers in ONE assistant message using the `Agent` tool. Each is a synchronous, blocking call — multiple `Agent` tool uses in a single message run concurrently and the harness blocks the turn until every `tool_result` returns. **Do not set `run_in_background: true`. Do not use `TeamCreate` or any team-lifecycle tools** — async/teams semantics cause sub-agent completions to arrive as `task_notification` events that the lead can narrate and end its turn on without writing the artifact. Each gets a focused area:
 
 **Data Flow Explorer** (Agent, model=opus):
 > Trace the primary data flows through this system. Follow requests end-to-end. Identify entry points, transformations, and where data is stored or forwarded. Return: numbered list of flows with file paths and function names.

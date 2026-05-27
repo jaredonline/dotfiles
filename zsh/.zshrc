@@ -148,14 +148,15 @@ export PATH="$HOME/.local/bin:$PATH"
 # Coder devbox: GITHUB_TOKEN shadows the gh credential helper.
 unset GITHUB_TOKEN
 
-# Scrub leftover mouse-reporting state after every ssh exit. Zellij on the
-# remote enables SGR mouse modes; if the ssh connection dies before zellij
-# can send the disable sequences, iTerm2 stays stuck reporting every mouse
-# move as escape gibberish.
+# Scrub leftover terminal state after every ssh exit. Zellij on the remote
+# enables SGR mouse modes and Kitty Keyboard Protocol; if the ssh connection
+# dies before zellij can send the disable sequences, iTerm2 stays stuck and
+# the local shell starts seeing escape gibberish (mouse coords, '99;5u' on
+# Ctrl+C, etc.).
 ssh() {
   command ssh "$@"
   local rc=$?
-  printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?25h' >/dev/tty
+  printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?25h\e[<u\e[=0u\e[>4m' >/dev/tty
   return $rc
 }
 export FASTEMBED_CACHE_DIR="$HOME/.runewright/.cache"

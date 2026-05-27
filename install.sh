@@ -45,19 +45,40 @@ merge_json() {
 
   mkdir -p "$(dirname "$dst")"
 
-  # Back up existing file (symlink or regular)
+  # Compute the would-be contents first so we can skip the backup when the
+  # result is byte-identical — avoids unbounded backup accumulation on repeat
+  # installs. NOTE: `jq -s '.[0] * .[1]'` shallow-merges objects but REPLACES
+  # arrays wholesale (e.g. a user's custom `hooks.Stop` array is overwritten,
+  # not appended). The no-override branch likewise replaces the file entirely.
+  # If you need to preserve user array entries, edit `~/.claude/settings.json`
+  # to add them under a key the base file doesn't set.
+  local tmp
+  tmp="$(mktemp)"
+  if [[ -n "$override" && -f "$override" ]]; then
+    jq -s '.[0] * .[1]' "$base" "$override" > "$tmp"
+  else
+    cp "$base" "$tmp"
+  fi
+
+  # Back up existing file (symlink or regular) only if contents differ. Use a
+  # timestamp so repeat installs never clobber a previous backup.
   if [[ -L "$dst" ]]; then
     rm "$dst"
   elif [[ -e "$dst" ]]; then
-    echo "Backing up $dst → ${dst}.backup"
-    mv "$dst" "${dst}.backup"
+    if cmp -s "$dst" "$tmp"; then
+      rm "$tmp"
+      echo "Unchanged $dst"
+      return
+    fi
+    local backup="${dst}.backup.$(date +%Y%m%d%H%M%S)"
+    echo "Backing up $dst → $backup"
+    mv "$dst" "$backup"
   fi
 
+  mv "$tmp" "$dst"
   if [[ -n "$override" && -f "$override" ]]; then
-    jq -s '.[0] * .[1]' "$base" "$override" > "$dst"
     echo "Merged $base + $override → $dst"
   else
-    cp "$base" "$dst"
     echo "Copied $base → $dst (no override)"
   fi
 }
@@ -74,19 +95,36 @@ merge_md() {
 
   mkdir -p "$(dirname "$dst")"
 
-  # Back up existing file (symlink or regular)
+  # Compute the would-be contents first so we can skip the backup when the
+  # result is byte-identical — avoids unbounded backup accumulation on repeat
+  # installs.
+  local tmp
+  tmp="$(mktemp)"
+  if [[ -n "$override" && -f "$override" ]]; then
+    { cat "$base"; echo; cat "$override"; } > "$tmp"
+  else
+    cp "$base" "$tmp"
+  fi
+
+  # Back up existing file (symlink or regular) only if contents differ. Use a
+  # timestamp so repeat installs never clobber a previous backup.
   if [[ -L "$dst" ]]; then
     rm "$dst"
   elif [[ -e "$dst" ]]; then
-    echo "Backing up $dst → ${dst}.backup"
-    mv "$dst" "${dst}.backup"
+    if cmp -s "$dst" "$tmp"; then
+      rm "$tmp"
+      echo "Unchanged $dst"
+      return
+    fi
+    local backup="${dst}.backup.$(date +%Y%m%d%H%M%S)"
+    echo "Backing up $dst → $backup"
+    mv "$dst" "$backup"
   fi
 
+  mv "$tmp" "$dst"
   if [[ -n "$override" && -f "$override" ]]; then
-    { cat "$base"; echo; cat "$override"; } > "$dst"
     echo "Merged $base + $override → $dst"
   else
-    cp "$base" "$dst"
     echo "Copied $base → $dst (no override)"
   fi
 }
@@ -99,7 +137,6 @@ link_file "git/.gitconfig"          "$HOME/.gitconfig"
 link_file "tools/.gemrc"            "$HOME/.gemrc"
 link_file "tools/.terraformrc"      "$HOME/.terraformrc"
 link_file "gh/config.yml"           "$HOME/.config/gh/config.yml"
-merge_json "$DOTFILES/claude/settings.json" "" "$HOME/.claude/settings.json"
 merge_md   "$DOTFILES/CLAUDE.md"            "" "$HOME/.claude/CLAUDE.md"
 # Claude Code skills
 for cmd in "$DOTFILES"/claude/commands/*.md; do
@@ -187,6 +224,9 @@ setup_zellij() {
 cockpit_init
 build_dashboard
 build_krust
+# settings.json references krust subcommands; merge after build so the hook
+# never points at a binary that doesn't have the required subcommand yet.
+merge_json "$DOTFILES/claude/settings.json" "" "$HOME/.claude/settings.json"
 setup_zellij
 
 # Krust config dir (extra trees populate the config file)
