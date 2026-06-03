@@ -106,6 +106,8 @@ Combine explorer findings with the user's brief. Weight findings flagged by 2+ e
 
 Make decisions — don't present options. For each decision, briefly note why alternatives were rejected.
 
+As architect, also answer this decomposition checkpoint explicitly: **could this design ship in N ordered PRs?** If yes, identify the minimum coherent first PR and what each subsequent PR adds. The answer drives whether you emit `## Decomposition Hints` in step 7 — if the architecture naturally decomposes into >= 2 ordered chunks, populate the section; otherwise omit it. Forcing a decomposition that introduces concepts outside the Architecture section is a smell — when in doubt, omit.
+
 ### 5. Spec all interfaces explicitly
 
 This is the most important step. For every boundary in the design:
@@ -204,6 +206,18 @@ Mermaid diagram of components and their relationships.
 ## Data Flow
 Step-by-step flow for each key operation, referencing interfaces above.
 
+## Decomposition Hints
+
+The architecture above naturally decomposes into these chunks for stacked delivery:
+
+1. **<layer-name>** — <one sentence>
+   - **Merge-alone invariant**: <what must be true for this layer to safely ship alone>
+   - **Touches**: <files/components>
+
+2. **<layer-name>** — ...
+
+Emit this section ONLY when the design decomposes into >= 2 ordered chunks (per the step-4 checkpoint). Otherwise omit it entirely. Each hint MUST have a `Merge-alone invariant` (a property that holds if this layer ships alone) and a `Touches` line listing files or components. Number hints starting at 1 in delivery order. Every hint must reference at least one component from the `## Architecture` section — hints that introduce new concepts are forced decomposition; remove them and, if none remain, omit the section.
+
 ## Key Decisions
 | Decision | Chosen | Rejected | Why |
 |----------|--------|----------|-----|
@@ -263,6 +277,7 @@ Before presenting the final document, verify:
 - [ ] Key Decisions table has at least one rejected alternative per decision
 - [ ] Architecture diagram exists and matches the described components
 - [ ] Invariants section lists concrete constraints, not vague goals
+- [ ] If `## Decomposition Hints` is present: >= 2 hints, each with `Merge-alone invariant` and `Touches`, numbered from 1 in delivery order, and every hint references a component from `## Architecture`. If the design doesn't decompose, the section is omitted entirely
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
 - [ ] ## Tracking section includes Beads task ID
 - [ ] Step 3 spawned all 3 explorers in a single assistant message via `Agent` (true parallelism, no team lifecycle)

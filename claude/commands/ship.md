@@ -14,6 +14,8 @@ Inputs come from environment variables set by krust:
 - `KRUST_SHIP_OPERATION` — `"create"` or `"modify"`
 - `KRUST_DESIGN_PATH` — absolute path to the design doc, if krust resolved one (CLI `--design` or propagated from a chained implement); unset otherwise
 
+Stack identity (`stack_id`, `stack_position`) is NOT a skill responsibility — krust stamps both fields on the emitted action server-side from its own authoritative state. Do not emit either key.
+
 The skill is never invoked when `KRUST_SHIP_VCS_STRATEGY=graphite` and `KRUST_SHIP_OPERATION=modify` — krust handles that case in-process.
 
 Krust writes the precomputed diff to `$ACTIONS_DIR/inputs/diff.patch` before invoking this skill.
@@ -123,6 +125,7 @@ Rules:
 - `target_repo` and `branch` are empty placeholders — krust overwrites both via `rewrite_submit_action_targets`.
 - `draft` — `true` when `KRUST_SHIP_EXISTING_PR` is empty (new branch); `false` when an existing PR is being updated. Krust may override based on CLI flags.
 - `existing_pr_number` — `null` if `KRUST_SHIP_EXISTING_PR` is empty; otherwise the integer PR number.
+- Do NOT emit `stack_id` or `stack_position`. Krust stamps both server-side from its own state.
 
 #### Shape 2 — `KRUST_SHIP_OPERATION=modify` (Git only)
 
@@ -146,6 +149,7 @@ Rules:
 - `title` and `body` MUST be empty strings — the existing PR's description stays put.
 - `commit_message` is generated from the diff with the same `[area]` bracket convention as Shape 1, under 70 chars.
 - The skill MUST NOT call `/pr` for this shape.
+- Do NOT emit `stack_id` or `stack_position` — same rule as Shape 1.
 
 Exit after writing the action. Krust reads `$ACTIONS_DIR`, overwrites `target_repo`/`branch`, and runs `handle_submit`.
 

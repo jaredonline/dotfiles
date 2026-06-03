@@ -52,6 +52,14 @@ epic_id="$bd_id"
 
 Standalone: discover the epic from the design reference or `$ARGUMENTS` (existing behavior).
 
+**Stack-mode env vars** (set by krust when implementing a layer of a stacked plan):
+
+- `KRUST_EPIC_ID` — the layer's epic ID (existing semantics; same as `$bd_id` under krust)
+- `KRUST_STACK_ID` — the parent stack slug. Absent for single-layer plans.
+- `KRUST_STACK_LAYER` — the layer position as integer (1-indexed). Absent for single-layer plans.
+
+When `KRUST_STACK_ID` is unset, behavior is identical to single-mode (no plan-loading changes, no action-shape changes). When set, Step 3A loads the full plan file and anchors on the layer subsection — see below.
+
 ### 3A. Mode A — Read existing task graph
 
 The task graph was created by `/plan`. Read it:
@@ -60,7 +68,20 @@ The task graph was created by `/plan`. Read it:
 bd list --parent=<epic-id> --status=open --pretty
 ```
 
-Identify which tasks are ready (no unresolved deps) and which are blocked. Skip to Step 5.
+Identify which tasks are ready (no unresolved deps) and which are blocked.
+
+**Load the plan artifact.** The plan file lives at the path recorded in beads metadata. Lookup precedence:
+
+1. **Stack mode** (`KRUST_STACK_ID` set): find the PARENT task that owns the stack slug — the task whose `KrustMeta.stack_slug == $KRUST_STACK_ID` — and read its `artifact_path`. Do NOT use the layer epic's `artifact_path`; layer epics may not carry the plan path themselves.
+2. **Single mode** (`KRUST_STACK_ID` unset): read `artifact_path` from `bd show <epic-id> --json` for the current epic.
+
+In **stack mode**, /implement MUST read the FULL `plans-<slug>.md` (terminal state + every `### Layer N: ...` section), not just the section for the current layer. This is an invariant: terminal-state interfaces and sibling-layer contracts must stay in context so workers make correct cross-layer decisions. After loading the full file, anchor on `### Layer <KRUST_STACK_LAYER>: <layer-slug>` to extract THIS layer's task graph and merge-alone invariant. Also read the `## Stack Status` table — base branch references and prior-layer status are informational (krust handles base branch derivation at ship time).
+
+> /implement always reads the full plan when in stack mode — never just its own slice.
+
+In single mode, read the plan as today (no full-file invariant).
+
+Skip to Step 5.
 
 ### 3B. Mode B — Create task graph inline
 
