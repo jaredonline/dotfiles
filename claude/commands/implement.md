@@ -163,7 +163,8 @@ After integration is green, tighten the code the workers produced before it leav
 1. **Simplify the code.** Invoke the `/simplify` skill over the changes. It applies reuse, simplification, efficiency, and altitude cleanups in place — collapsing duplication, swapping reinvented helpers for existing ones, and removing complexity the parallel workers couldn't see across task boundaries.
 
 2. **Audit comments for load-bearing value.** Review every comment the implementation added or changed and cut the ones that don't earn their place:
-   - **Remove** comments that explain *what* well-named code already says, that reference the task/design/PR ("added for X", "see the plan"), or that are tombstones (`# renamed from…`, stale TODOs).
+   - **Always strip personal workflow artifacts** (no judgment call — these must never ship in code): beads task IDs (e.g. `jmcfarland-gzr4`), links or paths to design docs (`$COCKPIT_DIR/state/designs/…` or any cockpit reference), "see the plan / per the design" pointers, and any other internal tracking reference. They are meaningless to a repo reader and leak private context.
+   - **Remove** comments that explain *what* well-named code already says, that reference the task/PR ("added for X"), or that are tombstones (`# renamed from…`, stale TODOs).
    - **Collapse** multi-paragraph docstrings or blocks to the one line that carries the load.
    - **Keep** only the non-obvious *why*: hidden constraints, invariants, ordering requirements, workaround-for-bug notes. When in doubt, keep — deleting load-bearing context is worse than leaving a marginal comment.
 
