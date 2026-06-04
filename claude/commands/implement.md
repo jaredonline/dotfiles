@@ -19,8 +19,9 @@ If no design is available, stop and tell the user to run /design first.
 | 4. Create shared interfaces | No — main agent | Must exist before workers start |
 | 5. Spawn workers | Yes — all workers | Independent implementation tasks |
 | 6. Integrate | No — main agent | Verify changes, run tests |
-| 7. Archive consumed design | No — main agent | Move design to finished/ in cockpit |
-| 8. Close tasks and report | No — main agent | Summarizes results with ## Tracking |
+| 7. Tighten changes | No — main agent | /simplify + comment audit, re-run tests |
+| 8. Archive consumed design | No — main agent | Move design to finished/ in cockpit |
+| 9. Close tasks and report | No — main agent | Summarizes results with ## Tracking |
 
 ## Process
 
@@ -155,11 +156,26 @@ After all workers complete:
 
 If any check fails, fix it before reporting.
 
-### 7. Archive consumed design
+### 7. Tighten changes
 
-If the design document lives in `$COCKPIT_DIR/state/designs/`, you'll archive it in Step 8 — after `krust artifact implementations` runs, so the archive reason can use the resolved implementation slug (which may differ from the input slug if a collision was auto-bumped to `-v2`..`-v5`). If the design wasn't from the cockpit, no archive is needed.
+After integration is green, tighten the code the workers produced before it leaves the skill. There is no PR yet, so everything here is scoped to the implementation's **working-tree changes** (the uncommitted diff).
 
-### 8. Close tasks and report
+1. **Simplify the code.** Invoke the `/simplify` skill over the changes. It applies reuse, simplification, efficiency, and altitude cleanups in place — collapsing duplication, swapping reinvented helpers for existing ones, and removing complexity the parallel workers couldn't see across task boundaries.
+
+2. **Audit comments for load-bearing value.** Review every comment the implementation added or changed and cut the ones that don't earn their place:
+   - **Remove** comments that explain *what* well-named code already says, that reference the task/design/PR ("added for X", "see the plan"), or that are tombstones (`# renamed from…`, stale TODOs).
+   - **Collapse** multi-paragraph docstrings or blocks to the one line that carries the load.
+   - **Keep** only the non-obvious *why*: hidden constraints, invariants, ordering requirements, workaround-for-bug notes. When in doubt, keep — deleting load-bearing context is worse than leaving a marginal comment.
+
+3. **Re-run the Step 6 tests.** Both passes edit real code, so re-run the same tests from Step 6. If a cleanup broke something, fix it or revert that specific change — never report with red tests.
+
+Do not run any git commands — the changes stay in the working tree for krust.
+
+### 8. Archive consumed design
+
+If the design document lives in `$COCKPIT_DIR/state/designs/`, you'll archive it in Step 9 — after `krust artifact implementations` runs, so the archive reason can use the resolved implementation slug (which may differ from the input slug if a collision was auto-bumped to `-v2`..`-v5`). If the design wasn't from the cockpit, no archive is needed.
+
+### 9. Close tasks and report
 
 For each completed task: `bd close <task-id>`
 
@@ -204,7 +220,7 @@ if [ "$final_slug" != "$slug" ]; then
   echo "Slug collided; resolved to $final_slug"
 fi
 
-# Archive the consumed design (Step 7) using the resolved implementation slug, so
+# Archive the consumed design (Step 8) using the resolved implementation slug, so
 # the archive reason matches the actual implementation-report filename. Skip if
 # the design wasn't in $COCKPIT_DIR/state/designs/.
 krust archive designs "$design_file" "implemented: $final_slug"

@@ -155,9 +155,27 @@ Additional constraints for this rewrite:
 - Preserve inline references and formatting (links, filenames, code spans)
 ```
 
-Use the sub-agent's returned text as the PR body for submission.
+Use the sub-agent's returned text as the input to the trim pass below.
 
-If the sub-agent fails (e.g., writing-voice memory not found), submit the original body and note in the Step 5 report: "Voice pass skipped."
+If the sub-agent fails (e.g., writing-voice memory not found), pass the original body to the trim pass and note in the Step 5 report: "Voice pass skipped."
+
+#### Trim pass
+
+After the voice pass, spawn one more sub-agent (Agent, model=opus) whose only job is to cut anything in the PR body that doesn't earn its place. Pass it the voiced body and these principles:
+
+- **Every sentence earns its place.** Cut anything that merely restates the diff or tells the reviewer something the `## Changes` list already says.
+- **No PR/task meta.** Delete "as requested", "in this PR", "this change adds…", and any reference to the *process* of making the change. The body documents the result, not the work.
+- **No redundancy across sections.** Context, Approach, Reviewer guide, and Changes must not repeat each other. If two sections say the same thing, keep it where it belongs and cut it elsewhere.
+- **Keep the non-obvious *why*; cut the obvious *what*.**
+- **Collapse padding.** If a multi-sentence paragraph has one load-bearing sentence, keep that sentence and drop the rest.
+
+Constraints for the sub-agent:
+- Trim only — do not rewrite for style, soften, or add anything. A span either earns its place or it's cut.
+- `## Changes` is the canonical "what" — keep it as a scannable list; only drop a bullet that is redundant or restates another bullet. Keep `## Testing` factual.
+- Preserve all `##` headings, inline references/links/code spans, and the 🤖 trailer.
+- Return the full PR body.
+
+Use the sub-agent's returned text as the final PR body for submission. If it fails, submit the voice-pass body and note in the Step 5 report: "Trim pass skipped."
 
 #### With Graphite
 
