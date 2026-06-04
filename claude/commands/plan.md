@@ -324,8 +324,7 @@ Then emit one `create_task_graph` action per layer to `$ACTIONS_DIR/task-graph-<
     "position": <n>,
     "layer_slug": "<layer-slug>",
     "branch_name": "<stack-slug>-<NN>-<layer-slug>",
-    "base_branch": "main",
-    "invariant": "<text>"
+    "base_branch": "main"
   },
   "epic": {
     "title": "Layer <NN>: <layer-name>",
