@@ -5,3 +5,6 @@ target
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# local is still kinda thing
+local/
