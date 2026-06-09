@@ -134,7 +134,7 @@ compdef _gt_yargs_completions gt
 command -v rbenv >/dev/null 2>&1 && eval "$(rbenv init -)"
 export RACK_ENV=development
 
-export PATH=${PATH}:`go env GOPATH`/bin
+export PATH=${PATH}:$(go env GOPATH)/bin
 
 source ~/.zshprofile
 
@@ -160,3 +160,10 @@ ssh() {
   return $rc
 }
 export FASTEMBED_CACHE_DIR="$HOME/.runewright/.cache"
+
+# qlty completions
+[ -s "/opt/homebrew/share/zsh/site-functions/_qlty" ] && source "/opt/homebrew/share/zsh/site-functions/_qlty"
+
+# qlty
+export QLTY_INSTALL="$HOME/.qlty"
+export PATH="$QLTY_INSTALL/bin:$PATH"
