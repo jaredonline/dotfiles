@@ -30,11 +30,11 @@ Agents over-engineer by default. They add abstractions, indirection, and flexibi
 
 **Why:** Agents optimize for completeness, not simplicity. The simplification review catches the ~30% of complexity added "just in case." Build this into skills, don't rely on catching it during code review.
 
-### Opus Everywhere
+### Flagship Everywhere
 
-Use the best model for everything — lead, workers, reviewers, explorers. Speed comes from parallelism (multiple agents, multiple devboxes), not from faster models.
+Use the flagship model for everything — lead, workers, reviewers, explorers. The flagship is defined once, in `[models].flagship` in the krust config (`local/krust/config.toml` → `~/.krust/config.toml`); graph workflows pin it in their `model_stylesheet`. Speed comes from parallelism (multiple agents, multiple devboxes), not from faster models.
 
-**Why:** The quality difference between model tiers is massive and compounds across every agent in your workflow. Don't use a weaker model "to save cost" unless you've actually A/B tested it and measured the quality reduction.
+**Why:** The quality difference between model tiers is massive and compounds across every agent in your workflow. Don't use a weaker model "to save cost" unless you've actually A/B tested it and measured the quality reduction. Naming the tier (not the model) in docs means a model upgrade is a one-line config change, not a docs hunt.
 
 ## Skill Design Conventions
 
@@ -46,7 +46,7 @@ Every skill decomposes work into parallel units using the same pattern:
 - Workers each get one focused task + minimal context
 - Lead aggregates results, doesn't do the work itself
 
-**Why:** 10 opus agents in parallel are faster *and* better than 10 sonnet agents. Subagents also provide fresh context windows — the fundamental scaling primitive.
+**Why:** 10 flagship agents in parallel are faster *and* better than 10 budget-tier agents. Subagents also provide fresh context windows — the fundamental scaling primitive.
 
 ### Context Is the Scarcest Resource
 
