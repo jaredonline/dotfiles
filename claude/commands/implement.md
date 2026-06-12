@@ -36,6 +36,8 @@ Under krust, `krust bd-start` prints `$KRUST_BEADS_ID` (no-op). Standalone, it c
 
 **CRITICAL**: `$bd_id` is your orchestration task for this entire run. Do NOT create a separate orchestration task via `bd create`. Use `$bd_id` in the implementation report frontmatter and in `krust bd-finish`. The only tasks you create via `bd create` are child implementation tasks under the epic.
 
+**In graph mode** (the invoking prompt supplies an explicit plan-target epic id — typically `/implement epic <plan_epic_id>`), `$KRUST_BEADS_ID` names the **graph-run task, NOT the plan epic**, so the two diverge whenever `plan_epic_id != bd_id` (the plan-target case). Bind `$bd_id` to the supplied **plan-target epic id**, not to `$KRUST_BEADS_ID`, and use that id everywhere `$bd_id` appears below — the orchestration epic, the report frontmatter (Step 9), and `krust bd-finish`. This is the same id the invoking prompt requires in the report frontmatter, so the skill and wrapper agree. On freeform graph runs (`plan_epic_id == bd_id`) and standalone/oneshot runs there is no divergence — `$bd_id` is `$KRUST_BEADS_ID` as usual.
+
 ### 2. Detect mode
 
 **First, check the brief-as-spec signal.** If the invoking prompt explicitly stated the brief is the spec (see Input — the graph-mode "brief-as-spec" variant) and the brief passes the minimum-sufficiency check there, this is **Mode B unconditionally**: there is no design doc, so the `bd list --parent=<epic-matching-design>` query below is undefined and MUST be skipped. Proceed straight to Step 3B and build the task graph inline from the brief. This precedence rule resolves the conflict where a brief is supplied but a planned task graph also happens to exist — the brief wins, and you do NOT build a duplicate inline graph atop the planned one.
@@ -55,6 +57,8 @@ If `$KRUST_BEADS_ID` is set, `$bd_id` is the epic id:
 ```bash
 epic_id="$bd_id"
 ```
+
+(Graph plan-target runs already bound `$bd_id` to the supplied plan-target epic id in Step 1, not to `$KRUST_BEADS_ID` — `epic_id="$bd_id"` therefore still names the plan epic.)
 
 Standalone: discover the epic from the design reference or `$ARGUMENTS` (existing behavior).
 
