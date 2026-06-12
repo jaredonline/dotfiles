@@ -5,31 +5,27 @@ model: opus
 user_invocable: false
 ---
 
-Apply minimal code patches for the approved findings on a review artifact. Each approved finding becomes one worker subagent that produces the smallest possible patch addressing the finding, runs the project test command, and reports back. The lead aggregates outcomes, mutates the review artifact's approval markers in place, and writes a summary-only fix report.
-
-The skill MUST NOT create, claim, or close the bd task — the harness owns task lifecycle. The skill MUST NOT commit code — krust handles commits.
+Apply minimal code patches for the approved findings on a review artifact. Each approved finding becomes one worker subagent that produces the smallest possible patch addressing the finding, runs the project test command, and reports back. The lead aggregates outcomes, mutates the review artifact's approval markers in place, writes a summary-only fix report, and commits.
 
 ## Inputs
 
-- `KRUST_BEADS_ID` — bd task id; skill MUST NOT create/claim/close it
-- `KRUST_OUT` — per-round fix report artifact path
-- `KRUST_REVIEW_ARTIFACT` — absolute path to review artifact
-- `KRUST_APPROVED_IDS` — comma-separated finding IDs, e.g. `"FC1,FH2,FH3"`
-- `ACTIONS_DIR` — action JSON dir
+- The review artifact path — `$COCKPIT_DIR/state/reviews/review-<slug>.md` (the artifact `/review` produced and `/approve-review` amended). The `<slug>` comes from `$ARGUMENTS`. If ambiguous, list the artifacts under `$COCKPIT_DIR/state/reviews/` and ask.
+- The set of approved finding IDs is read from the artifact frontmatter `approved_findings` list (the IDs `/approve-review` marked). `$ARGUMENTS` may also pass an explicit comma-separated subset (e.g. `auth-refactor FC1,FH2`); when omitted, fix every approved finding that is not already terminal.
+- The artifact frontmatter carries `beads_id` (the review task) and `head_sha` (the staleness signal).
 
 ## Steps
 
 ### 1. Validate inputs and preconditions
 
-Parse `$KRUST_APPROVED_IDS` into a list (trim whitespace, drop empty tokens).
+Read the review artifact. Parse the YAML frontmatter and capture `beads_id`, `head_sha`, the `approved_findings` list, and (if present) `round`.
+
+Resolve the list of IDs to fix: the explicit subset from `$ARGUMENTS` if given, otherwise the full `approved_findings` list. Trim whitespace, drop empty tokens.
 
 If the resulting list is empty, abort:
 ```bash
 echo "fix-review: no approved findings to fix" >&2
 exit 1
 ```
-
-Read the review artifact at `$KRUST_REVIEW_ARTIFACT`. Parse the YAML frontmatter and capture `head_sha` and (if present) `round`.
 
 Compare the artifact's `head_sha` against the current HEAD:
 ```bash
@@ -40,8 +36,6 @@ If `current != head_sha` from the artifact frontmatter, abort:
 ```
 fix-review: review staleness — current HEAD != review.head_sha, re-run /review against current HEAD
 ```
-
-`git rev-parse HEAD` is the ONLY git command this skill is permitted to run. Do not run any other git operations anywhere in the skill.
 
 ### 2. Derive round number `<n>`
 
@@ -93,7 +87,7 @@ If addressing the finding requires editing any other file, do not edit it. Rever
 - No refactors, no abstractions, no "while I'm here" cleanups.
 - Write or update a test that demonstrates the fix when the finding is testable.
 - Run the project's test command (detect: cargo test / go test ./... / npm test / pytest) after editing. It must pass.
-- Do not run git commands. Krust handles commits.
+- Do not run git commands. The lead handles commits.
 - Do not retry. If your first edit attempt doesn't get tests green, revert your edits (delete new content; restore originals from your initial Read) and return STATUS: fix_failed with the failing test output as the reason.
 
 ## Output (last line of your response MUST be one of)
@@ -117,7 +111,7 @@ For each worker, parse the final `STATUS:` line:
 
 If any worker reported `STATUS: fixed` and survived scope validation, run the project's test command once more from the lead (final smoke run, detect: cargo test / go test ./... / npm test / pytest).
 
-If the final smoke fails, mark the overall fix report run as `partial` but DO NOT revert the successful per-finding edits — krust commits per-finding successes regardless (per design K7). Surface the smoke failure in the fix report.
+If the final smoke fails, mark the overall fix report run as `partial` but DO NOT revert the successful per-finding edits — the successful per-finding fixes are retained regardless. Surface the smoke failure in the fix report.
 
 ### 7. Mutate the review artifact in place
 
@@ -146,17 +140,17 @@ Append a new section to the artifact (after any existing Fix Outcomes sections, 
 - [FH3] ❌ Fix failed — <reason>
 ```
 
-Write the modified artifact back to `$KRUST_REVIEW_ARTIFACT`.
+Write the modified artifact back to the review artifact path.
 
 ### 8. Write the fix report
 
-Write to `$KRUST_OUT` with the following structure. The fix report is summary-only — finding bodies and per-finding descriptions stay in the review artifact, which is the source of truth.
+Write a per-round fix report to `$COCKPIT_DIR/state/reviews/fix-review-<slug>-round<n>.md`. The fix report is summary-only — finding bodies and per-finding descriptions stay in the review artifact, which is the source of truth.
 
 ```markdown
 ---
 name: Fix Review <slug>
 beads_id: <id>
-review_artifact: <relative path to review>
+review_artifact: review-<slug>.md
 round: <n>
 head_sha: <sha matching review.head_sha at the time of fix>
 applied_at: <iso8601>
@@ -174,17 +168,23 @@ N approved · X fixed · Y failed
 
 If the final smoke run failed, add a single line under the count summary: `Smoke test: failed — run marked partial (successful per-finding edits retained).`
 
-### 9. Signal completion
+### 9. Commit
 
+Commit the code patches and the updated review artifact + fix report directly:
 ```bash
-bd update "$KRUST_BEADS_ID" --set-metadata='skill_complete=true'
+git add -A
+git commit -m "fix-review: <slug> round <n> — X fixed, Y failed"
+git -C "$COCKPIT_DIR" add "state/reviews/review-<slug>.md" "state/reviews/fix-review-<slug>-round<n>.md"
+git -C "$COCKPIT_DIR" commit -m "fix-review: <slug> round <n> report"
 ```
 
-Do NOT run `bd close $KRUST_BEADS_ID`. Do NOT run any git operation beyond the `git rev-parse HEAD` precondition check in step 1.
+Push both. If `$COCKPIT_DIR` is the same repo as the working tree, collapse into a single add/commit/push.
+
+If failed findings remain, route them back through `/feedback-review` (to revise the finding or its scope) and re-run; otherwise close the review task once every approved finding is terminal-fixed: `bd close <beads_id>`.
 
 ## Invariants
 
-- `KRUST_APPROVED_IDS` empty ⇒ abort before any read/mutation.
+- Resolved fix list empty ⇒ abort before any read/mutation.
 - HEAD-SHA mismatch ⇒ abort before any worker spawn or artifact mutation.
 - Terminal markers from prior rounds are never rewritten.
 - Approved marker is replaced (not stacked) exactly once per round per finding.
@@ -192,4 +192,4 @@ Do NOT run `bd close $KRUST_BEADS_ID`. Do NOT run any git operation beyond the `
 - Workers operate with `model=opus` and `isolation=none` (shared working tree).
 - Worker `FILES:` outside declared scope ⇒ treated as failure regardless of test outcome.
 - Fix report is summary-only; finding bodies stay in the review artifact.
-- Skill never creates, claims, or closes bd tasks; never commits code; never runs git beyond `git rev-parse HEAD`.
+- Successful per-finding edits are retained even when the final smoke run fails (run marked partial).

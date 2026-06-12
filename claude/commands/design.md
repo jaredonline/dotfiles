@@ -25,24 +25,21 @@ The more the user front-loads, the less exploration you do and the faster you co
 | 5. Spec interfaces | No — main agent | Depends on synthesis |
 | 6. Simplification review | No — 1 agent (clean-room) | Isolated from exploration context |
 | 7. Output | No — main agent | Writes the document |
-| 8. Emit the artifact (REQUIRED) | No — main agent | Hands the file to krust |
+| 8. Commit the artifact (REQUIRED) | No — main agent | Persists the design and closes the task |
 | 9. Self-validation | No — main agent | Final audit |
 
 ## Process
 
 ### 1. Create Beads task
 
-Run:
+Create and claim a task to track the work:
 
 ```bash
-bd_id=$(krust bd-start task "Design: [topic]")
+bd_id=$(bd create --title="Design: [topic]" --type=task --priority=2 | grep -oE '[a-z]+-[0-9]+')
+bd update "$bd_id" --claim
 ```
 
-`krust bd-start` auto-detects mode: under krust (KRUST_BEADS_ID set) it prints the existing task ID, standalone it creates and claims a new task with project-resolved labels. Capture the output into `$bd_id` for subsequent `bd update --notes` calls.
-
-If running under krust, the task inputs (brief, etc.) live in bd metadata — read via `bd show $bd_id --json` and extract from `.metadata.krust`. Standalone, `[topic]` comes from the user's `$ARGUMENTS`. The brief is `$ARGUMENTS` standalone, or `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'` under krust.
-
-Skills do not run git directly — krust owns all git operations.
+`[topic]` comes from the user's `$ARGUMENTS`. Capture the task ID into `$bd_id` for subsequent `bd update --notes` calls. The brief is `$ARGUMENTS`.
 
 You will reference `$bd_id` in the ## Tracking section of your final output.
 
@@ -176,7 +173,7 @@ For each recommendation: ACCEPT, REJECT (with reason), or MODIFY. Apply accepted
 
 ### 7. Output
 
-Write the design document to a working file. Under krust the wrapper pre-computed `$KRUST_OUT` as a starting path; you may write to `$KRUST_OUT` directly OR to a temp path of your choice — the harness handles relocation via the slug you declare in Step 8. Standalone, write anywhere (e.g. `/tmp/design-draft.md`).
+Pick a `$slug` — a kebab-case version of the feature/system name (max 50 chars) — and write the design document to `$COCKPIT_DIR/state/designs/design-$slug.md` (run `mkdir -p "$COCKPIT_DIR/state/designs"` first if needed). Reuse this same `$slug` in step 8.
 
 Produce a markdown document with these sections:
 
@@ -239,39 +236,37 @@ Run /plan to create the task graph for implementation.
 > <brief, verbatim, each line prefixed with `> `>
 ```
 
-Omit the `## Brief` section entirely if the brief is empty. Preserve the brief verbatim, including newlines — each line gets a `> ` prefix to form a markdown blockquote. Krust appends `## Rounds of Feedback` at runtime; the template does not need to mention it.
+Omit the `## Brief` section entirely if the brief is empty. Preserve the brief verbatim, including newlines — each line gets a `> ` prefix to form a markdown blockquote.
 
-### 8. Emit the artifact (REQUIRED)
+### 8. Commit the artifact (REQUIRED)
 
-After writing the document, run these two commands in order. Do not exit the turn before both succeed.
+After writing the document, persist it and close the task. Do not exit the turn before these succeed.
 
 ```bash
-# 1. Declare the desired slug and hand the artifact to krust. The resolved slug
-#    may differ from the input if the input collided (auto-bumped to -v2..-v5).
-result=$(krust artifact designs "$slug" "$draft_path")
-final_slug=$(echo "$result" | jq -r .slug)
+# 1. Commit and push the design document.
+git add "$COCKPIT_DIR/state/designs/design-$slug.md"
+git -C "$COCKPIT_DIR" commit -m "Add design: $slug"
+git -C "$COCKPIT_DIR" push
 
-if [ "$final_slug" != "$slug" ]; then
-  echo "Slug collided; resolved to $final_slug"
+# 2. If this design was informed by an exploration in $COCKPIT_DIR/state/explorations/,
+#    move it into the finished/ subdirectory to keep the active set clean.
+if [ -n "$exploration_file" ]; then
+  mkdir -p "$COCKPIT_DIR/state/explorations/finished"
+  git -C "$COCKPIT_DIR" mv "$exploration_file" "$COCKPIT_DIR/state/explorations/finished/$(basename "$exploration_file")"
+  git -C "$COCKPIT_DIR" commit -m "Archive exploration: finished $slug"
+  git -C "$COCKPIT_DIR" push
 fi
 
-# 2. If this design was informed by an exploration in $COCKPIT_DIR/state/explorations/, archive it.
-#    Use the resolved slug so the archive reason matches the final design filename.
-krust archive explorations "$exploration_file" "finished: $final_slug"
+# 3. Close the Beads task.
+bd close "$bd_id"
 ```
-
-```bash
-krust bd-finish "$bd_id"
-```
-
-`<slug>` is a kebab-case version of the feature/system name (max 50 chars). Under krust, `krust artifact` emits an action JSON the wrapper consumes; standalone, it writes directly to `$COCKPIT_DIR/state/designs/<slug>.md` and commits. `krust bd-finish` is a no-op under krust and closes the bd task directly when standalone.
 
 ### 9. Self-validation
 
 Before presenting the final document, verify:
 
-- [ ] `krust artifact designs "$slug" "$draft_path"` was called with the final document path, and the resolved slug was used in any subsequent `krust archive` call
-- [ ] `krust bd-finish "$bd_id"` was called
+- [ ] The design was written to `$COCKPIT_DIR/state/designs/design-$slug.md`, committed, and pushed
+- [ ] `bd close "$bd_id"` was called
 - [ ] Every section in the output template has content (or an explicit "N/A — [reason]")
 - [ ] All interfaces have full signatures with types, parameters, and error cases
 - [ ] Key Decisions table has at least one rejected alternative per decision

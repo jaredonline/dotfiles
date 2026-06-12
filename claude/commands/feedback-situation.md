@@ -4,13 +4,19 @@ description: Apply feedback to a situation design document preserving structural
 user_invocable: false
 ---
 
-Read the artifact at `$KRUST_OUT`.
+Read the situation document at `<world>/<season>/situation.md`.
 
-The feedback text is `$KRUST_FEEDBACK` (always set; may be empty). If empty, the user picked `[E]dit` and edited the file by hand — no feedback text to apply, review their edits for consistency only.
+The feedback text comes from `$ARGUMENTS`. If it is empty, the user edited the file by hand — no feedback text to apply, review their edits for consistency only.
 
 ---
 
-Read the artifact file.
+Create and claim a bd task for this feedback round:
+```bash
+bd_id=$(bd create "Feedback: situation" --json | jq -r '.id')
+bd update "$bd_id" --claim
+```
+
+Read the situation document.
 
 If feedback text is available, apply this feedback.
 Otherwise, the user just edited this file by hand. Review the edits and ensure internal consistency.
@@ -33,15 +39,35 @@ After applying the changes, verify the following invariants and fix any violatio
    count (4/6/8), and fill condition.
 7. **Three-faction coverage**: At least one faction each in good, bad, and ugly
    roles.
-8. **Frontmatter consistency**: Preserve `beads_id` field.
-9. **Preserve `## Brief` and `## Rounds of Feedback` sections**: If a top-level section titled exactly `## Brief` exists, preserve it byte-for-byte — the original brief stays the original brief; feedback is feedback, not a new brief. If `## Brief` is absent (empty-brief artifact), do not add a placeholder. If a top-level section titled exactly `## Rounds of Feedback` exists at the end of the artifact, preserve it byte-for-byte. For both sections: do not edit, reformat, reorder, summarize, move, or remove any content within them. Krust will append the new round entry after you return; do not add a round entry yourself.
+8. **Frontmatter consistency**: Preserve any existing frontmatter fields; do not
+   strip or reorder them.
+9. **Preserve `## Brief` and manage `## Rounds of Feedback`**: If a top-level
+   section titled exactly `## Brief` exists, preserve it byte-for-byte — the
+   original brief stays the original brief; feedback is feedback, not a new
+   brief. If `## Brief` is absent (empty-brief artifact), do not add a
+   placeholder. Preserve any existing `## Rounds of Feedback` entries
+   byte-for-byte — do not edit, reformat, reorder, summarize, move, or remove
+   prior round content. When you have applied feedback text, you own the round
+   log: append a new round entry to `## Rounds of Feedback` (creating the
+   section at the footer if it does not yet exist). The footer ordering is
+   `## Open Threads` → `## Brief` → `## Rounds of Feedback`. Each round entry
+   records the round number and the verbatim feedback applied, e.g.:
+
+   ```markdown
+   ## Rounds of Feedback
+
+   ### Round 1
+   > {feedback text, verbatim, each line prefixed with `> `}
+   ```
+
+   If the feedback text was empty (hand edit), do not add a round entry.
 
 Do NOT skip these checks. The structural integrity of the situation document depends on them.
 
-After rewriting the file, signal completion:
+After rewriting the file, commit and push it, then close the bd task:
 ```bash
-if [ -n "$KRUST_BEADS_ID" ]; then
-  bd update $KRUST_BEADS_ID --set-metadata='artifact_written=true'
-  bd update $KRUST_BEADS_ID --set-metadata='skill_complete=true'
-fi
+git add <world>/<season>/situation.md
+git commit -m "Apply feedback to situation"
+git push
+bd close "$bd_id"
 ```

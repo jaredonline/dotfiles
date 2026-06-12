@@ -2,65 +2,46 @@ You are performing a multi-perspective code review. Your goal is to find real is
 
 ## Input
 
-Review a diff. The diff source depends on mode:
-
-- **krust mode** (`$KRUST_BEADS_ID` is set): the harness has prepared the diff. Read it from `$KRUST_DIFF_PATH` and parse `$KRUST_REVIEW_CONTEXT` for metadata (mode, head_sha, base_ref, pr.url, pr.number, head_branch, reviewed_at, summary). The skill NEVER runs `git` or `gh` — the harness enforces `disallowed_tools: ["Bash(git:*)"]`. Writes are limited to `$KRUST_OUT`, `$ACTIONS_DIR/*`, and scratch under `/tmp`.
-- **standalone mode** (`$KRUST_BEADS_ID` is unset): gather the diff with git against the base branch. If a design document exists, also verify implementation coherence.
+Review a diff against the base branch. The brief/target is `$ARGUMENTS` (a branch, feature description, or PR reference). If a design document exists, also verify implementation coherence.
 
 ## Agent Strategy
 
 | Step | Parallel? | Why |
 |---|---|---|
-| 1. Mode detection + task setup | No — main agent | Branches all downstream steps |
+| 1. Task setup | No — main agent | Creates the tracking task |
 | 2. Gather context (diff + metadata) | No — main agent | Determines which reviewers to spawn |
 | 3. Reviewer team (6 personas + conditional language/design coherence) | Yes — all agents | Independent review perspectives |
 | 4. Correctness filter | No — main agent | Verifies findings against actual code |
 | 5. Consensus detection | No — main agent | Depends on filtered findings |
-| 6. Output | No — main agent | Formats final document |
-| 7. Fix cycle (standalone only) | No — main agent | Implements approved fixes, re-reviews |
+| 6. Output | No — main agent | Writes and commits the artifact |
+| 7. Fix cycle | No — main agent | Implements approved fixes, re-reviews |
 
 ## Process
 
-### 1. Mode detection + task setup
+### 1. Task setup
 
-Check `$KRUST_BEADS_ID`:
-
-**krust mode** (`$KRUST_BEADS_ID` is set):
-- The task is already created and claimed by the harness. Use `$KRUST_BEADS_ID` as the review task ID.
-- Do NOT run `git` or `gh` anywhere in this skill.
-- Do NOT call `bd create` or `bd update --claim`.
-
-**standalone mode** (`$KRUST_BEADS_ID` is unset):
 - **Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this task belongs to by matching `cwd` against project `path` fields and matching the task topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation.
 - Run `bd create --title="Review: [branch/feature]" --description="[what is being reviewed]" --type=task --labels=<resolved-labels>` and store the returned task ID.
 - Claim it: `bd update <id> --claim`.
 
-You will reference the task ID in the ## Tracking section (standalone) or in the frontmatter `beads_id` field (krust).
+You will reference the task ID in the artifact frontmatter `beads_id` field and in the ## Tracking section.
 
 ### 2. Gather context
 
-**krust mode**:
-- Read the diff with the `Read` tool from `$KRUST_DIFF_PATH`. Do NOT embed the full diff contents in subagent prompts — pass the PATH instead so each reviewer reads only the slice relevant to its persona.
-- Parse `$KRUST_REVIEW_CONTEXT` (JSON) for: `mode` (`pr` or `local`), `dirty` (when `mode=local`), `head_sha`, `base_ref`, `pr.url`, `pr.number`, `head_branch`, `reviewed_at`, `summary`.
-- Identify languages present by scanning file extensions in the diff header (`+++ b/...`) — determines which language-specific reviewers to spawn.
-- Check `.metadata.krust` on the beads task (`bd show $KRUST_BEADS_ID --json`) for a design document reference.
-
-**standalone mode**:
 - Detect the base branch dynamically and capture the diff:
 ```bash
 base=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@') || base=main
+git rev-parse HEAD            # capture as head_sha for the frontmatter
 git diff $base...HEAD
 ```
-- Identify languages in the diff to determine which language-specific reviewers to spawn.
-- Check if a design document exists (look in conversation context or ask).
+- Identify languages present by scanning file extensions in the diff header (`+++ b/...`) — determines which language-specific reviewers to spawn.
+- Check if a design document exists (look in conversation context, `$COCKPIT_DIR/state/designs/`, or ask).
 
 ### 3. Spawn reviewer team (parallel)
 
 Spawn ALL reviewers in ONE assistant message using the `Agent` tool. Each is a synchronous, blocking call — multiple `Agent` tool uses in a single message run concurrently and the harness blocks the turn until every `tool_result` returns. **Do not set `run_in_background: true`. Do not use `TeamCreate` or any team-lifecycle tools** — async/teams semantics cause sub-agent completions to arrive as `task_notification` events that the lead can narrate and end its turn on without writing the artifact. Each reviewer gets a focused persona and explicit "Don't flag" rules to prevent overlap.
 
-**In krust mode, give each reviewer the `$KRUST_DIFF_PATH` and tell them to Read only the slice relevant to their persona** — do not paste diff contents into prompts.
-
-**In standalone mode**, give each reviewer the diff output directly.
+Give each reviewer the diff output directly.
 
 The six core personas are spawned every run:
 
@@ -189,21 +170,16 @@ Every finding heading is `### [<ID>] <title>`. Body must contain:
 - A persona attribution line (e.g. `from: sre, devil's-advocate`)
 - A description of the issue and suggested remediation
 
-Sections appear in this fixed order: `Summary`, `Priority (Consensus ≥ 2)`, `Critical`, `High`, `Medium`, `Low`, `False Positives Removed`.
+Sections appear in this fixed order: `Summary`, `Priority (Consensus ≥ 2)`, `Critical`, `High`, `Medium`, `Low`, `Design Coherence` (if applicable), `False Positives Removed`.
 
-**krust mode**:
-
-Write the document to `$KRUST_OUT` with YAML frontmatter. The `mode`, `head_sha`, `base_ref`, `pr_url`, and `reviewed_at` values come from the parsed `$KRUST_REVIEW_CONTEXT`. Include `dirty` only when `mode=local`.
+Write the document to `$COCKPIT_DIR/state/reviews/review-<slug>.md` (derive `<slug>` from the branch/feature being reviewed) with YAML frontmatter. The `head_sha` comes from the `git rev-parse HEAD` captured in step 2; `base_ref` is the detected base branch; `reviewed_at` is the current ISO8601 timestamp.
 
 ```yaml
 ---
 name: Review <slug>
-beads_id: <$KRUST_BEADS_ID>
-mode: pr|local
-dirty: true|false          # only present when mode=local
+beads_id: <review-task-id>
 head_sha: <sha>
 base_ref: origin/main      # or null
-pr_url: https://github.com/... # or null
 reviewed_at: 2026-04-23T14:30:00Z
 approved_findings: []
 ---
@@ -242,59 +218,6 @@ from: <persona>
 ### [FL1] <title>
 ...
 
-## False Positives Removed
-- `path:line` — <one-line justification>
-```
-
-Emit the artifact and finalize the task:
-
-```bash
-# 1. Hand the artifact to the krust harness.
-cat > "$ACTIONS_DIR/artifact.json" <<EOF
-{"type": "artifact", "kind": "reviews", "path": "$KRUST_OUT"}
-EOF
-
-# 2. Signal completion.
-bd update "$KRUST_BEADS_ID" --set-metadata='skill_complete=true'
-```
-
-**standalone mode**:
-
-Before writing the Tracking section, run `bd close <review-task-id>`.
-
-Present findings directly to the user (no frontmatter, no `$KRUST_OUT`, no `artifact.json`):
-
-```markdown
-# Code Review
-
-## Summary
-X findings (Y critical, Z high) across N files. M false positives removed.
-
-## Priority (Consensus ≥ 2)
-### [FP1] <title>
-`path/to/file:line`
-from: <persona-a>, <persona-b>
-References: FH2
-<description>
-
-## Critical
-### [FC1] <title>
-`path/to/file:line`
-from: <persona>
-<description>
-
-## High
-### [FH1] <title>
-...
-
-## Medium
-### [FM1] <title>
-...
-
-## Low
-### [FL1] <title>
-...
-
 ## Design Coherence (if applicable)
 Score: X/10
 [alignment/deviation/missing details]
@@ -303,20 +226,30 @@ Score: X/10
 - `path:line` — <one-line justification>
 
 ## Tracking
-- Beads: <review-task-id> — closed
+- Beads: <review-task-id>
 - [list any bug fix task IDs and status]
 ```
 
-### 7. Fix cycle (standalone only)
+Commit and push the artifact directly:
 
-Skip this step entirely in krust mode — the harness runs the fix cycle as a separate skill invocation.
+```bash
+mkdir -p "$COCKPIT_DIR/state/reviews"
+# (write the artifact, then)
+git -C "$COCKPIT_DIR" add "state/reviews/review-<slug>.md"
+git -C "$COCKPIT_DIR" commit -m "review: <slug>"
+git -C "$COCKPIT_DIR" push
+```
 
-After presenting findings to the user:
+The artifact is the source of truth for the rest of the loop: `/approve-review` marks approvals on it, `/fix-review` applies patches per approved finding, and `/feedback-review` applies feedback and routes back.
+
+### 7. Fix cycle
+
+After writing and committing the artifact, present the findings summary to the user:
 - If user approves fixes: Create Beads bug tasks. Claim them as you work on them. Record progress in the tasks as you go.
 - If user approves fixes: implement all Critical and High fixes.
 - Run tests after fixes.
 - Re-review only the changed code (don't re-review the full diff).
-- Close each bug task as its fix is verified. Close the review task after all fixes are complete: `bd close <review-task-id>`.
+- Close each bug task as its fix is verified. Close the review task after all fixes are complete: `bd close <review-task-id>`. If the user defers fixes, leave the review task open for the fix-review loop and note it in ## Tracking.
 
 ## Rules
 
@@ -325,7 +258,5 @@ After presenting findings to the user:
 - **Spawn all reviewers in ONE message** — parallel, not sequential.
 - **Language reviewers are conditional** — only for languages in the diff.
 - **Finding IDs are stable** — assign `FC/FH/FM/FL` per severity in document order; `FP<n>` Priority entries reference an underlying finding ID rather than introducing new content.
-- **Structured output** — always use the fixed section order (Summary → Priority → Critical → High → Medium → Low → False Positives Removed).
+- **Structured output** — always use the fixed section order (Summary → Priority → Critical → High → Medium → Low → Design Coherence → False Positives Removed).
 - **No false positives in final output** — every finding must be verified against actual code.
-- **krust mode: never run `git` or `gh`** — the harness disallows git via tool policy. Writes are limited to `$KRUST_OUT`, `$ACTIONS_DIR/*`, and `/tmp`.
-- **Standalone mode is unchanged** — no krust env reads gate existing logic; the skill works identically when `$KRUST_BEADS_ID` is unset.

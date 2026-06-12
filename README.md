@@ -9,8 +9,8 @@ Designed around an **agentic workflow**: encode engineering expertise into compo
 The core workflow is a chain of skills, each a separate phase:
 
 ```
-/explore  → understand the codebase/system
 /design   → team exploration → synthesize → simplify → spec interfaces
+/plan     → decompose design into a task graph
 /implement → parse design → task graph → parallel workers
 /review   → multi-perspective PR review with correctness filter
 /pr       → create pull request
@@ -41,9 +41,8 @@ git/              — git config (.gitconfig)
 tools/            — misc tool configs (.gemrc, .terraformrc)
 gh/               — GitHub CLI config
 claude/           — Claude Code settings + custom commands (skills)
-  commands/       — slash command skills (/explore, /design, etc.)
+  commands/       — slash command skills (/design, /review, etc.)
   settings.json   — Claude Code settings (model, plugins, env)
-krust/            — Rust CLI wrapper for Claude skills (see krust/README.md)
 ```
 
 ## Conventions
@@ -83,8 +82,8 @@ My dotfiles repo is the control plane for this system. Skills, rules, and instru
 I've encoded my development workflow into a chain of Claude Code skills. Each is a slash command that runs a multi-step recipe:
 
 ```
-/explore  → understand a system or codebase area
 /design   → team exploration → synthesize → simplify → spec interfaces
+/plan     → decompose design into a task graph
 /implement → parse design → task graph → parallel workers
 /review   → multi-perspective PR review with correctness filter
 /pr       → create pull request
@@ -144,23 +143,6 @@ Language-specific reviewers are spawned conditionally based on what's in the dif
 All agent output (designs, plans, review findings) goes to a git-tracked state directory. Agents commit and push before asking for my feedback. I review on GitHub where markdown, mermaid diagrams, and tables render properly. I never review large artifacts inline in the CLI.
 
 The state repo clones into every dev environment, so designs from one environment are immediately available in another. No state is locked to a single machine.
-
-### Krust: The Wrapper Harness
-
-[Krust](krust/) is a Rust CLI that wraps Claude Code skills with deterministic orchestration. The core idea: **skills produce content, the harness performs side effects.** A skill writes a markdown artifact and emits JSON action files declaring what should happen (create tasks, archive files). The harness handles everything else: config loading, path resolution, beads task tracking, git commits, tool restrictions, and action processing.
-
-```
-krust design nodes "Investigate the disappearances"   # TTRPG node graph
-krust design situation "Three guilds competing"        # political situation
-krust design code "Add caching layer"                  # software design
-krust plan path/to/design.md                           # task decomposition
-```
-
-Every subcommand follows the same lifecycle: create a beads task, invoke Claude with restricted tools (git commands are physically disabled, not just discouraged), verify the output, commit and push the draft, then enter an interactive loop where I can approve, give feedback, hand-edit, or quit and resume later. On approve, the harness processes any action files the skill emitted (creating task graphs, archiving consumed inputs) and closes the beads task.
-
-The skill doesn't know about git, beads lifecycle, or path resolution. It sees three env vars (`$KRUST_BEADS_ID`, `$KRUST_OUT`, `$ACTIONS_DIR`) and writes its output. The harness handles the rest. This separation means skills stay focused on their creative or analytical work, and the deterministic parts can't drift across skill implementations.
-
-Resume support means I can quit mid-review, close the terminal, and pick up exactly where I left off with `--resume`. The harness reads the beads task metadata to reconstruct the full context.
 
 ### Automation
 

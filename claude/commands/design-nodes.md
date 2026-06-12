@@ -58,23 +58,24 @@ This stance applies to every agent prompt in the flow.
 | 4. Assemble node doc | No — main agent | Weave stories + nodes; build Reverse Story / timeline / revelation list / map / audit |
 | Wave C: Clean-Room Reviewer | No — 1 agent | Doc-only context, internal consistency |
 | Wave D: Lore-Check | No — 1 agent | Full context final pass |
-| 5. Final output | No — main agent | krust artifact + close bd |
+| 5. Final output | No — main agent | write artifact + `bd close` |
 
 ---
 
 ## Step 1a: Local Reads
 
-Run:
+Create and claim a bd task for this design:
 
 ```bash
-bd_id=$(krust bd-start task "Nodes: [scenario brief]")
+bd_id=$(bd create "Nodes: [scenario brief]" --json | jq -r .id)
+bd update "$bd_id" --claim
 ```
 
-`krust bd-start` auto-detects mode: under krust (KRUST_BEADS_ID set) it prints the existing task ID; standalone it creates and claims a new task with project-resolved labels. Capture the output into `$bd_id` for subsequent `bd update --notes` calls.
+Capture the task ID into `$bd_id` for subsequent `bd update --notes` calls.
 
 Read inputs in this order:
 
-- **Brief.** Under krust, scenario brief, situation doc, known nodes, `campaign_dir`, and `actions_dir` live in bd metadata: `bd show $bd_id --json`, then extract from `.metadata.krust` (`brief`, `campaign_dir`, `inputs.situation`, `inputs.nodes`, `actions_dir`). The output path is `$KRUST_OUT`. Standalone, parse `$ARGUMENTS` for scenario brief, situation doc, and known nodes.
+- **Brief.** Parse `$ARGUMENTS` for scenario brief, situation doc, and known nodes.
 
 - **Situation doc.** Default `<world>/<season>/situation.md` if not specified.
 
@@ -89,7 +90,7 @@ Read inputs in this order:
 
 - **`guides/node-design.md`** (mandatory — the structural reference the rest of this skill leans on).
 
-Standalone, the default output path is `<world>/<season>/nodes/<arc-slug>.md`.
+The default output path is `$COCKPIT_DIR/state/nodes/<slug>.md`, where `<slug>` is the kebab-case scenario identifier.
 
 If `--redesign <path>` is provided, read the file at that path and use it as the starting point. Parse the prior doc's layered graph, actor list, and node IDs as the baseline. The brief describes changes to make, not the full scenario. Preserve existing node IDs for unchanged nodes.
 
@@ -546,36 +547,32 @@ Lore-check produces the standard `## Lore Check` section appended to the doc. If
 
 ## Step 5: Final Output
 
-**File naming:** When running under krust ($KRUST_OUT is set), write the output file to `$KRUST_OUT`. Do not use a user-suggested filename — the harness requires this exact path for completion detection.
-
-1. Hand the artifact to krust and capture the resolved slug:
+1. Write the artifact and commit it:
 
    ```bash
-   result=$(krust artifact nodes "$slug" "$draft_path")
-   final_slug=$(echo "$result" | jq -r .slug)
+   slug="thornwall-disappearances"        # kebab-case scenario identifier
+   out="$COCKPIT_DIR/state/nodes/$slug.md"
 
-   if [ "$final_slug" != "$slug" ]; then
-     echo "Slug collided; resolved to $final_slug"
+   # If the slug collides with an existing file, bump it (-v2, -v3, ...).
+   if [ -e "$out" ]; then
+     n=2
+     while [ -e "$COCKPIT_DIR/state/nodes/$slug-v$n.md" ]; do n=$((n+1)); done
+     slug="$slug-v$n"
+     out="$COCKPIT_DIR/state/nodes/$slug.md"
    fi
+
+   # ... write the assembled node doc to "$out" ...
+
+   git -C "$COCKPIT_DIR" add "$out"
+   git -C "$COCKPIT_DIR" commit -m "Add node graph: $slug"
+   git -C "$COCKPIT_DIR" push
    ```
 
-   `<slug>` is the kebab-case scenario identifier (e.g. `thornwall-disappearances`). Under krust the wrapper uses the slug to canonicalize the artifact path; standalone it writes to `$COCKPIT_DIR/state/nodes/<slug>.md` and commits+pushes directly. `krust artifact` prints a JSON line on stdout with the resolved `slug` and `path` — the resolved slug may differ from the input if there was a collision (auto-bumped to `-v2`..`-v5`).
-
-2. Append a line to the campaign INDEX.md via an action, using the resolved slug so the link matches the actual artifact filename:
+2. Close the bd task:
 
    ```bash
-   echo "{\"type\": \"index_append\", \"path\": \"$campaign_dir/designs/INDEX.md\", \"line\": \"- [$final_slug]($final_slug.md) — $title\"}" > "$ACTIONS_DIR/index-append.json"
+   bd close "$bd_id"
    ```
-
-   `$campaign_dir` and `$title` come from bd metadata (read earlier in Step 1a).
-
-3. Close the bd task:
-
-   ```bash
-   krust bd-finish "$bd_id"
-   ```
-
-   Under krust this is a no-op (the wrapper closes the task on approval); standalone it closes the task.
 
 ---
 
@@ -664,7 +661,7 @@ Labeled edges show clue type. Entry point(s) marked distinctly.}
 > {brief, verbatim, each line prefixed with `> `}
 ```
 
-The `## Brief` section reproduces the scenario brief verbatim as a blockquote. If the brief is empty, omit the section entirely. Krust appends `## Rounds of Feedback` at runtime — do not add it manually.
+The `## Brief` section reproduces the scenario brief verbatim as a blockquote. If the brief is empty, omit the section entirely.
 
 ---
 
@@ -702,7 +699,7 @@ The `## Brief` section reproduces the scenario brief verbatim as a blockquote. I
 - [ ] `## Lore Check` section present
 
 **Output:**
-- [ ] Output file written to `$KRUST_OUT` (when running under krust)
+- [ ] Output file written to `$COCKPIT_DIR/state/nodes/<slug>.md` and committed+pushed
 
 ---
 

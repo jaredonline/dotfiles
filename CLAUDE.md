@@ -2,21 +2,13 @@
 
 ## Project Context
 
-This is a dotfiles repo that doubles as an agentic workflow system. Config files are symlinked to their expected locations. Claude Code skills encode a multi-phase development pipeline.
+This is a personal dotfiles repo. Config files are symlinked to their expected locations, and it ships a library of Claude Code skills (slash commands) in `claude/commands/`.
 
 Read ARCHITECTURE.md for structure and PRINCIPLES.md for conventions before making changes.
 
-## Skill Pipeline
-
-The core workflow: `krust explore` → `/design` → `/implement` → `/review` → `/pr`
-
-The entry point is `krust explore` (a DOT-graph pipeline driven by the krust graph engine) — the old `/explore` slash command is retired.
-
-Two human touchpoints: approve the design, review final findings. Everything between is automated.
-
 ## Agent Behavior
 
-- **Use the flagship model for all agents** — lead, workers, reviewers, explorers. No exceptions. The flagship is whatever `[models].flagship` says in the krust config (`local/krust/config.toml`, symlinked to `~/.krust/config.toml`) — currently `claude-fable-5`.
+- **Use Opus for all agents** — lead, workers, reviewers. No exceptions. Speed comes from parallelism, not weaker models.
 - **Lead/worker pattern** — decompose into parallel units, spawn all workers in ONE message, aggregate results.
 - **Context hygiene** — pipe verbose output (`| tail -20`), summarize before forwarding to subagents, delegate to subtasks for anything reading >5 files.
 - **Don't over-engineer** — no speculative abstractions, no "just in case" flexibility. Build what's needed, nothing more.

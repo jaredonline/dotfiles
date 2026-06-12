@@ -68,7 +68,7 @@ These rules govern every clue you propose and every validation you run. **Do not
 
 ## Step 1: Gather Context
 
-Extract the brief: standalone invocation uses `$ARGUMENTS`; krust mode uses `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'`. Then continue with context gathering below.
+Extract the brief from `$ARGUMENTS`. Then continue with context gathering below.
 
 Read whatever inputs are available. None are strictly required, but the more you have, the better the candidates.
 

@@ -54,16 +54,15 @@ The input format:
 - Parse the prior doc's factions, NPCs, goals, and timeline as the baseline
 - The brief describes changes to make, not the full situation
 
-Run:
+Create and claim a bd task for this run:
 ```bash
-bd_id=$(krust bd-start task "Situation: [conflict premise]")
+bd_id=$(bd create "Situation: [conflict premise]" --json | jq -r '.id')
+bd update "$bd_id" --claim
 ```
-
-`krust bd-start` auto-detects mode: under krust (KRUST_BEADS_ID set) it prints the existing task ID; standalone it creates and claims a new task with project-resolved labels. Capture the output into `$bd_id` for subsequent `bd update --notes` calls.
+Capture the task ID into `$bd_id` for subsequent `bd update --notes` calls.
 
 Read inputs:
-- Under krust, the conflict premise lives in bd metadata: `bd show $bd_id --json`, extract from `.metadata.krust.brief` (e.g. `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'`).
-- Standalone, parse `$ARGUMENTS` for conflict premise, PC goals, and setting context. The brief is `$ARGUMENTS`.
+- Parse `$ARGUMENTS` for conflict premise, PC goals, and setting context. The brief is `$ARGUMENTS`.
 - If no PC goals are provided, continue designing the situation but generate `## PC-Facing Opportunities` instead of `## PC Goal Paths`. Use `[NEEDS GM INPUT]` only where a goal-specific answer depends on unknown campaign intent.
 
 ---
@@ -167,15 +166,15 @@ Spawn ALL faction agents in ONE message.
 
 Run the validation checklist. Remove any empty sections. Output the final document.
 
-Write the situation document to `$KRUST_OUT` (when set) or to `<world>/<season>/situation.md` (standalone). The `situation.md` is a living doc — if it already exists, this run produces a revision (use `--redesign <path>` to make that explicit).
+Write the situation document to `<world>/<season>/situation.md`. The `situation.md` is a living doc — if it already exists, this run produces a revision (use `--redesign <path>` to make that explicit).
 
-Signal completion:
+Commit and push the situation doc, then close the bd task:
 ```bash
-krust artifact situations <slug> <path-you-wrote-to>
-krust bd-finish "$bd_id"
+git add <world>/<season>/situation.md
+git commit -m "Situation: [conflict premise]"
+git push
+bd close "$bd_id"
 ```
-
-When running under krust ($KRUST_OUT is set), write the output file to `$KRUST_OUT`.
 
 ---
 
@@ -342,7 +341,7 @@ Five lines per faction: name, relative power, location, brief description, 1-2 l
 > {brief, verbatim, each line prefixed with `> `}
 ```
 
-Omit `## Brief` if the brief is empty. Krust appends `## Rounds of Feedback` at runtime — do not author it manually. Section ordering at the footer is: `## Open Threads` → `## Brief` → `## Rounds of Feedback` (krust-managed).
+Omit `## Brief` if the brief is empty. Do not author `## Rounds of Feedback` on the initial design run — it starts absent and is added by `feedback-situation` when feedback is first applied. Section ordering at the footer is: `## Open Threads` → `## Brief` → `## Rounds of Feedback`.
 
 ---
 

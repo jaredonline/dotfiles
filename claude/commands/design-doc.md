@@ -251,7 +251,7 @@ Optionally run `/design` to create implementation-ready specs, then `/plan` to d
 
 > <brief, verbatim, each line prefixed with `> `>
 
-Omit the `## Brief` section entirely if the brief is empty. Krust appends `## Rounds of Feedback` after this section at runtime.
+Omit the `## Brief` section entirely if the brief is empty.
 
 ## Rules
 

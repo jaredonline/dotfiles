@@ -16,10 +16,8 @@ dotfiles/
 │
 ├── claude/                 # Claude Code configuration
 │   ├── settings.json       # Model, plugins, env vars
-│   └── commands/           # Skills (slash commands) + graph pipelines
+│   └── commands/           # Skills (slash commands)
 │       ├── kickoff.md      # Project bootstrapping
-│       ├── explore.dot     # Explore pipeline graph (run via `krust explore`)
-│       ├── prompts/        # Per-node prompt files for graph pipelines
 │       ├── design.md       # Architecture + interface spec
 │       ├── implement.md    # Parallel task execution
 │       ├── review.md       # Multi-perspective PR review
@@ -58,23 +56,17 @@ Then sources `local/install.sh` if present for machine-specific additions.
 
 ## Skill Pipeline
 
-The skills form a linear pipeline. Each phase has different properties:
+The skills form a linear pipeline. Each is a standalone slash command, and each phase has different properties:
 
 ```
-krust explore ──→ /design ──→ /implement ──→ /review ──→ /pr
-  │                 │            │              │           │
-  │                 │            │              │           └─ Create PR
-  │                 │            │              └─ Multi-perspective review
-  │                 │            └─ Parallel task workers
-  │                 └─ Team exploration → synthesize → simplify
-  └─ Document/understand a system
+/design ──→ /plan ──→ /implement ──→ /review ──→ /pr
+  │           │          │              │           │
+  │           │          │              │           └─ Create PR
+  │           │          │              └─ Multi-perspective review
+  │           │          └─ Parallel task workers
+  │           └─ Decompose design into a task graph
+  └─ Team exploration → synthesize → simplify
 ```
-
-### krust explore — Understand
-- **Purpose**: Build a mental model of an unfamiliar system
-- **Pattern**: A DOT graph (`claude/commands/explore.dot`) executed by the krust graph engine — parallel topic explorers fan out, a fan-in indexes their findings, a synthesizer writes the artifact, and a hexagon human gate pauses the run (exit 75) until `krust graph resume <id> --gate-choice ...`. The retired `/explore` slash command is replaced by this CLI entry point.
-- **Output**: Markdown document with request flows, key invariants, data stores, integration points, architecture diagrams
-- **Human role**: Read the output to build context, then approve or iterate at the feedback gate
 
 ### /design — Decide
 - **Purpose**: Produce an architecture document with specced interfaces
@@ -82,6 +74,12 @@ krust explore ──→ /design ──→ /implement ──→ /review ──→
 - **Output**: Design document with API specs, interface definitions, data flows, invariants, mermaid diagrams
 - **Human role**: **Review and approve** (primary touchpoint)
 - **Key rule**: Spec interfaces explicitly (method signatures, request/response types, error cases), not just prose descriptions
+
+### /plan — Decompose
+- **Purpose**: Turn an approved design into a claimable task graph
+- **Pattern**: Read the design, break it into tasks with explicit dependencies, record them in the task tracker
+- **Output**: A set of beads tasks ready for parallel workers to claim
+- **Human role**: None
 
 ### /implement — Build
 - **Purpose**: Turn an approved design into code
@@ -115,7 +113,7 @@ Workers (flagship):
   - Reports back to lead when done
 ```
 
-Flagship everywhere — `[models].flagship` in the krust config defines which model that is. Speed comes from parallelism, not faster models.
+Opus everywhere — lead, workers, reviewers. Speed comes from parallelism, not faster models.
 
 ## Local Override System
 

@@ -142,11 +142,11 @@ merge_md   "$DOTFILES/CLAUDE.md"            "" "$HOME/.claude/CLAUDE.md"
 for cmd in "$DOTFILES"/claude/commands/*.md; do
   link_file "claude/commands/$(basename "$cmd")" "$HOME/.claude/commands/$(basename "$cmd")"
 done
-# Prune dangling skill symlinks whose target no longer exists (e.g. the
-# /explore link left behind after explore.md was retired in favor of
-# `krust explore`). Only dotfiles-managed dangling symlinks are removed —
-# valid links, regular files, and foreign/user-managed links (whose target
-# is merely temporarily absent) are untouched.
+# Prune dangling skill symlinks whose target no longer exists (e.g. a link
+# left behind after a skill was renamed or removed). Only dotfiles-managed
+# dangling symlinks are removed — valid links, regular files, and
+# foreign/user-managed links (whose target is merely temporarily absent) are
+# untouched.
 for link in "$HOME/.claude/commands"/*; do
   if [[ -L "$link" && ! -e "$link" ]]; then
     target="$(readlink "$link")"
@@ -156,21 +156,6 @@ for link in "$HOME/.claude/commands"/*; do
     fi
   fi
 done
-# Krust graph assets — installed to a stable location ($HOME/.krust/graph)
-# rather than read live from the working tree. `krust explore` resolves
-# explore.dot here (after the KRUST_GRAPH_DIR override), and prompts are found
-# relative to the graph file's parent, so prompts/explore/ mirrors the layout.
-mkdir -p "$HOME/.krust/graph"
-link_file "claude/commands/explore.dot" "$HOME/.krust/graph/explore.dot"
-# Mirror the prompts/explore tree, symlinking each file at its relative path.
-prompts_src="$DOTFILES/claude/commands/prompts/explore"
-if [[ -d "$prompts_src" ]]; then
-  while IFS= read -r -d '' prompt; do
-    rel="${prompt#"$DOTFILES"/}"
-    link_file "$rel" "$HOME/.krust/graph/prompts/explore/${prompt#"$prompts_src"/}"
-  done < <(find "$prompts_src" -type f -print0)
-fi
-
 # Symlink claude scripts
 mkdir -p "$HOME/.claude/scripts"
 for script in "$DOTFILES"/claude/scripts/*; do
@@ -222,17 +207,6 @@ build_dashboard() {
   fi
 }
 
-build_krust() {
-  if command -v cargo >/dev/null 2>&1; then
-    echo "Building krust..."
-    mkdir -p "$HOME/.local/bin"
-    (cd "$DOTFILES/krust" && cargo build --release) 2>&1 | tail -5
-    install -m 755 "$DOTFILES/krust/target/release/krust" "$HOME/.local/bin/krust"
-  else
-    echo "Rust/cargo not installed — skipping krust build"
-  fi
-}
-
 setup_zellij() {
   local zellij_config="$HOME/.config/zellij"
   mkdir -p "$zellij_config/layouts"
@@ -252,14 +226,8 @@ setup_zellij() {
 
 cockpit_init
 build_dashboard
-build_krust
-# settings.json references krust subcommands; merge after build so the hook
-# never points at a binary that doesn't have the required subcommand yet.
 merge_json "$DOTFILES/claude/settings.json" "" "$HOME/.claude/settings.json"
 setup_zellij
-
-# Krust config dir (extra trees populate the config file)
-mkdir -p "$HOME/.krust"
 
 # Source any extra dotfile trees passed as args. Each tree must expose
 # merge.sh at its root; helpers above are in scope, and $EXTRA_DIR points

@@ -30,11 +30,11 @@ Agents over-engineer by default. They add abstractions, indirection, and flexibi
 
 **Why:** Agents optimize for completeness, not simplicity. The simplification review catches the ~30% of complexity added "just in case." Build this into skills, don't rely on catching it during code review.
 
-### Flagship Everywhere
+### Opus Everywhere
 
-Use the flagship model for everything — lead, workers, reviewers, explorers. The flagship is defined once, in `[models].flagship` in the krust config (`local/krust/config.toml` → `~/.krust/config.toml`); graph workflows pin it in their `model_stylesheet`. Speed comes from parallelism (multiple agents, multiple devboxes), not from faster models.
+Use Opus for everything — lead, workers, reviewers, explorers. Speed comes from parallelism (multiple agents, multiple devboxes), not from faster models.
 
-**Why:** The quality difference between model tiers is massive and compounds across every agent in your workflow. Don't use a weaker model "to save cost" unless you've actually A/B tested it and measured the quality reduction. Naming the tier (not the model) in docs means a model upgrade is a one-line config change, not a docs hunt.
+**Why:** The quality difference between model tiers is massive and compounds across every agent in your workflow. Don't use a weaker model "to save cost" unless you've actually A/B tested it and measured the quality reduction.
 
 ## Skill Design Conventions
 
@@ -61,10 +61,10 @@ Every skill decomposes work into parallel units using the same pattern:
 
 The brief surfaces in two places:
 
-- **Console**: krust prints the brief italicized on a single line before spawning the agent, so the brief survives any subsequent failure into the user's terminal scrollback. Skills no longer echo to console themselves.
-- **Artifact**: skills that produce a markdown artifact append a `## Brief` section after `## Tracking` (and `## Next Step` if present) and before any krust-managed `## Rounds of Feedback`. Format is a blockquote (`> `) with the brief preserved verbatim, newlines included.
+- **Console**: the skill prints the brief italicized on a single line before spawning agents, so the brief survives any subsequent failure into the terminal scrollback.
+- **Artifact**: skills that produce a markdown artifact append a `## Brief` section after `## Tracking` (and `## Next Step` if present) and before any `## Rounds of Feedback`. Format is a blockquote (`> `) with the brief preserved verbatim, newlines included.
 
-If the brief is empty, krust skips the console echo and skills omit `## Brief` — its absence is the signal for autonomous-mode invocations from `dylan-*` / `krawn-*` wrappers. Path-based skills (taking a path, diff, or branch) are exempt. `feedback-*` skills preserve `## Brief` byte-for-byte during revision, same as `## Rounds of Feedback`.
+If the brief is empty, skip the console echo and omit `## Brief`. Path-based skills (taking a path, diff, or branch) are exempt. `feedback-*` skills preserve `## Brief` byte-for-byte during revision, same as `## Rounds of Feedback`.
 
 **Why:** The brief is the single source of truth for what the human asked for. Echoing it makes intent auditable in transcripts and lets downstream skills (and humans) recover the original ask without re-reading the parent's context.
 

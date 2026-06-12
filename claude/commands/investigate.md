@@ -29,9 +29,7 @@ If no question is provided, stop and ask the user for a question.
 Run `bd create --title="Investigate: [question]" --type=task --labels=<resolved-labels>` and store the returned task ID.
 Claim it: `bd update <id> --claim`.
 
-**Brief extraction**: Determine the brief for this invocation.
-- Standalone: the brief is `$ARGUMENTS`.
-- Krust mode (when invoked with a `bd_id`): `bd show $bd_id --json | jq -r '.metadata.krust.brief // empty'`.
+**Brief extraction**: The brief for this invocation is `$ARGUMENTS`.
 
 ### 2. Decompose question
 
@@ -100,7 +98,7 @@ Ensure the output directory exists: `mkdir -p $COCKPIT_DIR/state/investigations`
 
 Close the beads task: `bd close <task-id>`
 
-Write the report to `$COCKPIT_DIR/state/investigations/<slug>.md` where `<slug>` is a kebab-case version of the question (max 50 chars).
+Write the report to `$COCKPIT_DIR/state/investigations/<slug>.md` where `<slug>` is a kebab-case version of the question (max 50 chars). Then commit and push it: `git -C $COCKPIT_DIR add state/investigations/<slug>.md && git -C $COCKPIT_DIR commit -m "investigate: <question>" && git -C $COCKPIT_DIR push`.
 
 Report template:
 
